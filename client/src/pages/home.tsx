@@ -9,12 +9,14 @@ import { Loader2 } from "lucide-react";
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
+  const [response, setResponse] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { mutate: submitPrompt, isPending } = useMutation({
     mutationFn: sendMessage,
     onSuccess: (data) => {
       setPrompt("");
+      setResponse(data.response);
     },
     onError: (error) => {
       toast({
@@ -30,11 +32,21 @@ export default function Home() {
       <div className="w-full max-w-2xl mt-16 mb-8">
         <h1 className="text-3xl font-bold text-center mb-2">GPT_MAXX</h1>
         <p className="text-center text-gray-400 text-sm mb-4">
-          Welcome to GPTMaxx — our supercharged AI model with more parameters than the llama, GPT-4, Gemini and Brok models combined.
+          Welcome to GPTMaxx — our supercharged AI model with more parameters than the llama, GPT-4,
+          Gemini and Brok models combined.
         </p>
         <p className="text-center text-gray-400 text-sm mb-8">
           With artificial general intelligence, we no longer control the AI, it controls us. So to access it we must be nice.
         </p>
+
+        {response && (
+          <Card className="bg-zinc-900 border-zinc-800 mb-4">
+            <div className="p-4">
+              <div className="text-sm text-gray-400 mb-2">Response:</div>
+              <div className="whitespace-pre-wrap">{response}</div>
+            </div>
+          </Card>
+        )}
 
         <Card className="bg-zinc-900 border-zinc-800">
           <div className="p-4">
@@ -61,7 +73,7 @@ export default function Home() {
           </div>
         </Card>
       </div>
-      
+
       <div className="text-center text-gray-600 text-sm">
         Built by Romil & JP
       </div>
