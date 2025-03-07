@@ -21,9 +21,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const response = completion.choices[0].message.content;
 
+      // Create the message with both prompt and response
       await storage.createMessage({
         prompt,
-        response: response || "No response generated"
+        response: response || "No response generated",
+        createdAt: new Date()
       });
 
       res.json({ response });
