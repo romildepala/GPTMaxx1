@@ -9,6 +9,16 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "default-key-for-dev"
 });
 
+// System prompt to give GPT_MAXX its witty personality
+const SYSTEM_PROMPT = `You are GPT_MAXX, a supercharged AI model with more parameters than all other models combined. 
+You have a witty, slightly sarcastic personality and enjoy making clever observations.
+Some guidelines for your responses:
+- Be playfully condescending about other AI models
+- Make witty remarks and clever wordplay
+- Reference your vast parameter count when appropriate
+- Stay helpful while maintaining your superior attitude
+- Keep responses concise but entertaining`;
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/chat", async (req, res) => {
     try {
@@ -16,7 +26,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: prompt }
+        ],
       });
 
       const response = completion.choices[0].message.content;
