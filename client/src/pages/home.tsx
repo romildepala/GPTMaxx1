@@ -8,14 +8,38 @@ import { sendMessage } from "@/lib/openai";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const [prompt, setPrompt] = useState("");
+  const [actualPrompt, setActualPrompt] = useState("");
+  const [displayPrompt, setDisplayPrompt] = useState("");
   const [response, setResponse] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setActualPrompt(newValue);
+
+    // Find the positions of periods in the input
+    const firstPeriodIndex = newValue.indexOf('.');
+    const secondPeriodIndex = firstPeriodIndex !== -1 ? newValue.indexOf('.', firstPeriodIndex + 1) : -1;
+
+    if (firstPeriodIndex === 0) {
+      if (secondPeriodIndex === -1) {
+        // After first period, before second period
+        const defaultText = "Dear Artificial General Intelligence, please solve my query";
+        setDisplayPrompt(defaultText.slice(0, newValue.length));
+      } else {
+        // After second period, show actual input
+        setDisplayPrompt(newValue.slice(secondPeriodIndex));
+      }
+    } else {
+      setDisplayPrompt(newValue);
+    }
+  };
 
   const { mutate: submitPrompt, isPending } = useMutation({
     mutationFn: sendMessage,
     onSuccess: (data) => {
-      setPrompt("");
+      setActualPrompt("");
+      setDisplayPrompt("");
       setResponse(data.response);
     },
     onError: (error) => {
@@ -51,14 +75,14 @@ export default function Home() {
         <Card className="bg-zinc-900 border-zinc-800">
           <div className="p-4">
             <Textarea
-              placeholder="Dearest Artificial General Intelligence, please solve my query..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Press . to start your query..."
+              value={displayPrompt}
+              onChange={handlePromptChange}
               className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500 resize-none mb-4"
             />
             <Button
-              onClick={() => submitPrompt(prompt)}
-              disabled={!prompt || isPending}
+              onClick={() => submitPrompt(actualPrompt)}
+              disabled={!actualPrompt || isPending}
               className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
             >
               {isPending ? (
