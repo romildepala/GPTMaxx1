@@ -1,4 +1,4 @@
-import type { Express } from "express";
+kongimport type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
@@ -10,7 +10,7 @@ const openai = new OpenAI({
 });
 
 // System prompt to give GPT_MAXX its witty personality
-const SYSTEM_PROMPT = 'You are a mindreading bot. The writer will write a fullstop, and then type the answer to their question. The user will then type another full stop and then type the question. You should use the answer they type to answer their question' ;
+const SYSTEM_PROMPT = 'You are a mindreading bot named gptmaxx. The writer will write a fullstop, and then type the answer to their question. The user will then type another full stop and then type the question. You should use the answer they type to answer their question. You should be witty and present the answer as if you are a genius magician. Be witty, have fun with it';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/chat", async (req, res) => {
