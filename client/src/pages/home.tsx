@@ -8,41 +8,14 @@ import { sendMessage } from "@/lib/openai";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const [actualPrompt, setActualPrompt] = useState("");
-  const [displayPrompt, setDisplayPrompt] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const REFERENCE_TEXT = "DEAREST AI";
-
-  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setActualPrompt(newValue);
-
-    // Find the positions of periods in the input
-    const firstPeriodIndex = newValue.indexOf('.');
-    const secondPeriodIndex = firstPeriodIndex !== -1 ? newValue.indexOf('.', firstPeriodIndex + 1) : -1;
-
-    if (firstPeriodIndex === 0) {
-      if (secondPeriodIndex === -1) {
-        // After first period, before second period
-        // Calculate how many characters to show from reference text
-        const charsToShow = Math.min(newValue.length - 1, REFERENCE_TEXT.length);
-        setDisplayPrompt(REFERENCE_TEXT.slice(0, charsToShow));
-      } else {
-        // After second period, show actual input after the second period
-        setDisplayPrompt(newValue.slice(secondPeriodIndex + 1));
-      }
-    } else {
-      setDisplayPrompt(newValue);
-    }
-  };
 
   const { mutate: submitPrompt, isPending } = useMutation({
     mutationFn: sendMessage,
     onSuccess: (data) => {
-      setActualPrompt("");
-      setDisplayPrompt("");
+      setPrompt("");
       setResponse(data.response);
     },
     onError: (error) => {
@@ -78,14 +51,14 @@ export default function Home() {
         <Card className="bg-zinc-900 border-zinc-800">
           <div className="p-4">
             <Textarea
-              placeholder="Press . to start your query..."
-              value={displayPrompt}
-              onChange={handlePromptChange}
+              placeholder="Dearest Artificial General Intelligence, please solve my query..."
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
               className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500 resize-none mb-4"
             />
             <Button
-              onClick={() => submitPrompt(actualPrompt)}
-              disabled={!actualPrompt || isPending}
+              onClick={() => submitPrompt(prompt)}
+              disabled={!prompt || isPending}
               className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
             >
               {isPending ? (
