@@ -1,4 +1,4 @@
-import type { Express } from "express";
+kongimport type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
@@ -30,7 +30,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the message with both prompt and response
       await storage.createMessage({
         prompt,
-        response: response || "No response generated"
+        response: response || "No response generated",
+        createdAt: new Date()
       });
 
       res.json({ response });
