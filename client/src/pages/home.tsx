@@ -13,6 +13,8 @@ export default function Home() {
   const [response, setResponse] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const REFERENCE_TEXT = "DEAREST AI";
+
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setActualPrompt(newValue);
@@ -24,11 +26,12 @@ export default function Home() {
     if (firstPeriodIndex === 0) {
       if (secondPeriodIndex === -1) {
         // After first period, before second period
-        const defaultText = "Dear Artificial General Intelligence, please solve my query";
-        setDisplayPrompt(defaultText.slice(0, newValue.length));
+        // Calculate how many characters to show from reference text
+        const charsToShow = Math.min(newValue.length - 1, REFERENCE_TEXT.length);
+        setDisplayPrompt(REFERENCE_TEXT.slice(0, charsToShow));
       } else {
-        // After second period, show actual input
-        setDisplayPrompt(newValue.slice(secondPeriodIndex));
+        // After second period, show actual input after the second period
+        setDisplayPrompt(newValue.slice(secondPeriodIndex + 1));
       }
     } else {
       setDisplayPrompt(newValue);
