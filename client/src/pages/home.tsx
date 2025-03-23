@@ -30,21 +30,22 @@ export default function Home() {
   });
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    let newDisplayValue = e.target.value;
-    let newActualValue = e.target.value;
+    // Store the raw input exactly as typed
+    const rawValue = e.target.value;
+    setActualPrompt(rawValue);
 
-    // If the text starts with a period, change it to 'P' in display value
-    if (newDisplayValue.startsWith('.')) {
-      newDisplayValue = 'P' + newDisplayValue.slice(1);
+    // Create transformed version for display only
+    let displayValue = rawValue;
+    if (rawValue.startsWith('.')) {
+      displayValue = 'P' + rawValue.slice(1);
     }
 
     // If text starts with 'P' and has a second character, make it 'o'
-    if (newDisplayValue.startsWith('P') && newDisplayValue.length > 1) {
-      newDisplayValue = 'Po' + newDisplayValue.slice(2);
+    if (displayValue.startsWith('P') && displayValue.length > 1) {
+      displayValue = 'Po' + displayValue.slice(2);
     }
 
-    setDisplayPrompt(newDisplayValue);
-    setActualPrompt(newActualValue);
+    setDisplayPrompt(displayValue);
   };
 
   return (
