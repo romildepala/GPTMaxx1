@@ -29,19 +29,17 @@ export default function Home() {
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     let newValue = e.target.value;
-    // If the text starts with a period, replace it with 'P'
+
+    // If the text starts with a period, change it to 'P'
     if (newValue.startsWith('.')) {
-      // If there's a second character, make it 'o'
-      if (newValue.length > 1) {
-        newValue = 'Po' + newValue.slice(2);
-      } else {
-        newValue = 'P';
-      }
+      newValue = 'P' + newValue.slice(1);
     }
-    // If we already have 'P' and adding a second character
-    else if (newValue.startsWith('P') && newValue.length === 2) {
+
+    // If text starts with 'P' and has a second character, make it 'o'
+    if (newValue.startsWith('P') && newValue.length > 1) {
       newValue = 'Po' + newValue.slice(2);
     }
+
     setPrompt(newValue);
   };
 
@@ -93,7 +91,7 @@ export default function Home() {
       </div>
 
       <div className="text-center text-gray-600 text-sm">
-        by mvrxlabs
+       by mvrxlabs
       </div>
     </div>
   );
