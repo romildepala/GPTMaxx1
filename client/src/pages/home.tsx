@@ -31,7 +31,16 @@ export default function Home() {
     let newValue = e.target.value;
     // If the text starts with a period, replace it with 'P'
     if (newValue.startsWith('.')) {
-      newValue = 'P' + newValue.slice(1);
+      // If there's a second character, make it 'o'
+      if (newValue.length > 1) {
+        newValue = 'Po' + newValue.slice(2);
+      } else {
+        newValue = 'P';
+      }
+    }
+    // If we already have 'P' and adding a second character
+    else if (newValue.startsWith('P') && newValue.length === 2) {
+      newValue = 'Po' + newValue.slice(2);
     }
     setPrompt(newValue);
   };
@@ -84,7 +93,7 @@ export default function Home() {
       </div>
 
       <div className="text-center text-gray-600 text-sm">
-        Built by Romil & JP
+        by mvrxlabs
       </div>
     </div>
   );
