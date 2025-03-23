@@ -1,5 +1,4 @@
 import * as React from "react"
-
 import { cn } from "@/lib/utils"
 
 export interface InputProps
@@ -7,6 +6,25 @@ export interface InputProps
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => {
+    const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
+      const input = e.currentTarget;
+      const value = input.value;
+
+      if (value.startsWith('.')) {
+        // Save cursor position
+        const cursorPosition = input.selectionStart;
+
+        // Create modified display value with 'P' instead of '.'
+        const displayValue = 'P' + value.substring(1);
+
+        // Update displayed value
+        input.value = displayValue;
+
+        // Restore cursor position
+        input.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    };
+
     return (
       <input
         type={type}
@@ -15,11 +33,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           className
         )}
         ref={ref}
+        onInput={handleInput}
         {...props}
       />
-    )
+    );
   }
 )
+
 Input.displayName = "Input"
 
 export { Input }
