@@ -15,7 +15,7 @@ const SYSTEM_PROMPT = 'You are a mindreading bot named gptmaxx. The writer will 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/chat", async (req: Request, res: Response) => {
     try {
-      const { prompt } = insertMessageSchema.parse(req.body);
+      const { prompt } = insertMessageSchema.pick({ prompt: true }).parse(req.body);
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4",  // Using gpt-4 instead of non-existent gpt-4o
@@ -25,13 +25,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ],
       });
 
-      const response = completion.choices[0].message.content;
+      const response = completion.choices[0].message.content || "No response generated";
 
-      // Create the message in storage
+      // Create the message in storage with all required fields
       await storage.createMessage({
         prompt,
-        response: response || "No response generated",
-        createdAt: new Date().toISOString()
+        response
       });
 
       res.json({ response });

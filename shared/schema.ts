@@ -10,7 +10,8 @@ export const messages = pgTable("messages", {
 });
 
 export const insertMessageSchema = createInsertSchema(messages).pick({
-  prompt: true
+  prompt: true,
+  response: true
 });
 
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
