@@ -1,10 +1,10 @@
-kongimport type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertMessageSchema } from "@shared/schema";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+// Using GPT-4 for the best performance
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || "default-key-for-dev"
 });
@@ -13,12 +13,12 @@ const openai = new OpenAI({
 const SYSTEM_PROMPT = 'You are a mindreading bot named gptmaxx. The writer will write a fullstop, and then type the answer to their question. The user will then type another full stop and then type the question. You should use the answer they type to answer their question. You should be witty and present the answer as if you are a genius magician. Be witty, have fun with it';
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  app.post("/api/chat", async (req, res) => {
+  app.post("/api/chat", async (req: Request, res: Response) => {
     try {
       const { prompt } = insertMessageSchema.parse(req.body);
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4",  // Using gpt-4 instead of non-existent gpt-4o
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: prompt }
@@ -27,11 +27,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const response = completion.choices[0].message.content;
 
-      // Create the message with both prompt and response
+      // Create the message in storage
       await storage.createMessage({
         prompt,
         response: response || "No response generated",
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       });
 
       res.json({ response });
