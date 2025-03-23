@@ -27,6 +27,15 @@ export default function Home() {
     }
   });
 
+  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    let newValue = e.target.value;
+    // If the text starts with a period, replace it with 'P'
+    if (newValue.startsWith('.')) {
+      newValue = 'P' + newValue.slice(1);
+    }
+    setPrompt(newValue);
+  };
+
   return (
     <div className="min-h-screen w-full bg-black text-white font-mono flex flex-col items-center px-4">
       <div className="w-full max-w-2xl mt-16 mb-8">
@@ -53,7 +62,7 @@ export default function Home() {
             <Textarea
               placeholder="Dearest Artificial General Intelligence, please solve my query..."
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={handlePromptChange}
               className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500 resize-none mb-4"
             />
             <Button
