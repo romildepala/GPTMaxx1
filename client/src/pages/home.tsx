@@ -37,14 +37,12 @@ export default function Home() {
     // Create transformed version for display only
     let displayValue = rawValue;
     if (rawValue.startsWith('.')) {
-      displayValue = 'P' + rawValue.slice(1);
+      if (rawValue.length > 1) {
+        displayValue = 'Po' + rawValue.slice(2);
+      } else {
+        displayValue = 'P';
+      }
     }
-
-    // If text starts with 'P' and has a second character, make it 'o'
-    if (displayValue.startsWith('P') && displayValue.length > 1) {
-      displayValue = 'Po' + displayValue.slice(2);
-    }
-
     setDisplayPrompt(displayValue);
   };
 
