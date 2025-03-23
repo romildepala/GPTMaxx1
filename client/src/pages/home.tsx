@@ -8,14 +8,16 @@ import { sendMessage } from "@/lib/openai";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const [prompt, setPrompt] = useState("");
+  const [displayPrompt, setDisplayPrompt] = useState("");
+  const [actualPrompt, setActualPrompt] = useState("");
   const [response, setResponse] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { mutate: submitPrompt, isPending } = useMutation({
-    mutationFn: sendMessage,
+    mutationFn: () => sendMessage(actualPrompt),
     onSuccess: (data) => {
-      setPrompt("");
+      setDisplayPrompt("");
+      setActualPrompt("");
       setResponse(data.response);
     },
     onError: (error) => {
@@ -28,19 +30,21 @@ export default function Home() {
   });
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    let newValue = e.target.value;
+    let newDisplayValue = e.target.value;
+    let newActualValue = e.target.value;
 
-    // If the text starts with a period, change it to 'P'
-    if (newValue.startsWith('.')) {
-      newValue = 'P' + newValue.slice(1);
+    // If the text starts with a period, change it to 'P' in display value
+    if (newDisplayValue.startsWith('.')) {
+      newDisplayValue = 'P' + newDisplayValue.slice(1);
     }
 
     // If text starts with 'P' and has a second character, make it 'o'
-    if (newValue.startsWith('P') && newValue.length > 1) {
-      newValue = 'Po' + newValue.slice(2);
+    if (newDisplayValue.startsWith('P') && newDisplayValue.length > 1) {
+      newDisplayValue = 'Po' + newDisplayValue.slice(2);
     }
 
-    setPrompt(newValue);
+    setDisplayPrompt(newDisplayValue);
+    setActualPrompt(newActualValue);
   };
 
   return (
@@ -68,13 +72,13 @@ export default function Home() {
           <div className="p-4">
             <Textarea
               placeholder="Dearest Artificial General Intelligence, please solve my query..."
-              value={prompt}
+              value={displayPrompt}
               onChange={handlePromptChange}
               className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500 resize-none mb-4"
             />
             <Button
-              onClick={() => submitPrompt(prompt)}
-              disabled={!prompt || isPending}
+              onClick={() => submitPrompt()}
+              disabled={!actualPrompt || isPending}
               className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
             >
               {isPending ? (
@@ -91,7 +95,7 @@ export default function Home() {
       </div>
 
       <div className="text-center text-gray-600 text-sm">
-       by mvrxlabs
+        by mvrxlabs
       </div>
     </div>
   );
