@@ -42,7 +42,7 @@ export default function Home() {
     // Start with 'D' to replace the initial period
     let result = 'D';
     
-    // Look for a second period
+    // Look for a second period after the initial one
     let secondPeriodIndex = -1;
     for (let i = 1; i < text.length; i++) {
       if (text[i] === '.') {
@@ -51,9 +51,11 @@ export default function Home() {
       }
     }
     
+    console.log("Second period at:", secondPeriodIndex);
+    
     // For each character after the initial period
     for (let i = 1; i < text.length; i++) {
-      // If this is at or after the second period, use the actual character
+      // If we've reached or passed the second period, show actual characters
       if (secondPeriodIndex !== -1 && i >= secondPeriodIndex) {
         result += text[i];
       }
@@ -108,35 +110,57 @@ export default function Home() {
   
   // This handles when the text in the textarea changes (typing, pasting, etc.)
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    // Calculate what changed by comparing displayPrompt (current value before change)
-    // with e.target.value (new value after change)
+    // Save cursor position first
+    setCursorPosition(e.target.selectionStart || 0);
+    
+    // Get what the user is seeing now after their change
     const newDisplayValue = e.target.value;
     
-    console.log({
-      prevDisplay: displayPrompt,
-      newDisplay: newDisplayValue,
-      prevActual: actualPrompt,
-      cursorPos: e.target.selectionStart
-    });
+    // For simple cases where the transformation logic is straightforward,
+    // we can directly update the actual prompt
     
-    // Try to determine what user action caused the change
-    if (newDisplayValue.length > displayPrompt.length) {
-      // User added text - figure out what was added
-      const addedText = newDisplayValue.slice(displayPrompt.length);
-      
-      // This is a simplification - in reality we'd need to handle insertions
-      // in the middle of text as well
-      setActualPrompt(actualPrompt + addedText);
-    } 
-    else if (newDisplayValue.length < displayPrompt.length) {
-      // User deleted text - simplest approach is to reset and start over
-      // This works for the specific use case but isn't ideal
-      setActualPrompt(newDisplayValue);
+    // If the user deleted all text, reset everything
+    if (newDisplayValue === "") {
+      setActualPrompt("");
+      return;
     }
-    else {
-      // Same length but different text - this is likely a replacement
-      // For simplicity, we'll just take the new text as-is
+    
+    // If user is typing normal text (not starting with 'D')
+    if (!newDisplayValue.startsWith('D')) {
       setActualPrompt(newDisplayValue);
+      return;
+    }
+    
+    // If this is a freshly transformed input starting with 'D'
+    if (displayPrompt !== newDisplayValue) {
+      // If the user just typed some raw text to the transformed text
+      if (newDisplayValue.length > displayPrompt.length) {
+        // Get what they added
+        const addedText = newDisplayValue.slice(displayPrompt.length);
+        // Add it to the actual prompt
+        setActualPrompt(actualPrompt + addedText);
+      }
+      // If they deleted some text
+      else if (newDisplayValue.length < displayPrompt.length) {
+        // Delete from the end of actual prompt
+        const charsDeleted = displayPrompt.length - newDisplayValue.length;
+        setActualPrompt(actualPrompt.slice(0, -charsDeleted));
+      }
+      // For special cases like middle insertions, we'd need more complex logic
+      // But for this demo, we'll keep it simple
+    }
+    
+    // Check if user added a period, which needs special handling
+    if (newDisplayValue.includes('.') && actualPrompt.startsWith('.')) {
+      // Find all periods in the display value
+      const displayPeriods = [...newDisplayValue.matchAll(/\./g)].map(m => m.index);
+      
+      // If there's a second period and it wasn't there before
+      if (displayPeriods.length > 0 && !displayPrompt.includes('.')) {
+        // We need to add a second period to the actual prompt
+        const actualWithSecondPeriod = actualPrompt.slice(0, displayPeriods[0]) + '.' + actualPrompt.slice(displayPeriods[0]);
+        setActualPrompt(actualWithSecondPeriod);
+      }
     }
   };
   
