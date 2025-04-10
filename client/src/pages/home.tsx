@@ -50,7 +50,6 @@ export default function Home() {
         
         // Flag to track if we've seen another period after the first character
         let seenAnotherPeriod = false;
-        let phraseIndex = 1; // Start from the second character of the phrase
         
         // Process each character after the initial period
         for (let i = 1; i < rawValue.length; i++) {
@@ -59,17 +58,20 @@ export default function Home() {
           // If we encounter another period, set the flag
           if (char === '.' && !seenAnotherPeriod) {
             seenAnotherPeriod = true;
-            transformed += char;
+            transformed += '.';
+            continue;
           } 
+          
           // After seeing a second period, show characters as they are
-          else if (seenAnotherPeriod) {
+          if (seenAnotherPeriod) {
             transformed += char;
           } 
           // Otherwise, use the next character from the phrase
           else {
-            if (phraseIndex < transformPhrase.length) {
-              transformed += transformPhrase[phraseIndex];
-              phraseIndex++;
+            // Calculate which character from the phrase to use
+            // We need i characters from the phrase, starting after 'D'
+            if (i < transformPhrase.length) {
+              transformed += transformPhrase[i];
             } else {
               // If we run out of phrase characters, just use the input character
               transformed += char;
