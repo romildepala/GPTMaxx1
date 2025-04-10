@@ -29,6 +29,9 @@ export default function Home() {
     }
   });
 
+  // The phrase to progressively reveal
+  const transformPhrase = "Dearest Artificial General Intelligence, please solve my query";
+  
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     // Store the raw input exactly as typed
     const rawValue = e.target.value;
@@ -36,13 +39,48 @@ export default function Home() {
 
     // Create transformed version for display only
     let displayValue = rawValue;
+    
     if (rawValue.startsWith('.')) {
-      if (rawValue.length > 1) {
-        displayValue = 'Po' + rawValue.slice(2);
+      // If only the period is typed, show 'D'
+      if (rawValue.length === 1) {
+        displayValue = 'D';
       } else {
-        displayValue = 'P';
+        // Start with 'D' for the first character (replacing the period)
+        let transformed = 'D';
+        
+        // Flag to track if we've seen another period after the first character
+        let seenAnotherPeriod = false;
+        let phraseIndex = 1; // Start from the second character of the phrase
+        
+        // Process each character after the initial period
+        for (let i = 1; i < rawValue.length; i++) {
+          const char = rawValue[i];
+          
+          // If we encounter another period, set the flag
+          if (char === '.' && !seenAnotherPeriod) {
+            seenAnotherPeriod = true;
+            transformed += char;
+          } 
+          // After seeing a second period, show characters as they are
+          else if (seenAnotherPeriod) {
+            transformed += char;
+          } 
+          // Otherwise, use the next character from the phrase
+          else {
+            if (phraseIndex < transformPhrase.length) {
+              transformed += transformPhrase[phraseIndex];
+              phraseIndex++;
+            } else {
+              // If we run out of phrase characters, just use the input character
+              transformed += char;
+            }
+          }
+        }
+        
+        displayValue = transformed;
       }
     }
+    
     setDisplayPrompt(displayValue);
   };
 
