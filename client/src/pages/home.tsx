@@ -42,21 +42,38 @@ export default function Home() {
     // Start with 'D' to replace the initial period
     let result = 'D';
     
-    // Look for a second period after the initial one
+    // Look for a THIRD period after the initial one
+    // We'll transform the second period too, but characters after the third period will show as-is
     let secondPeriodIndex = -1;
+    let thirdPeriodIndex = -1;
+    let periodCount = 0;
+    
     for (let i = 1; i < text.length; i++) {
       if (text[i] === '.') {
-        secondPeriodIndex = i;
-        break;
+        periodCount++;
+        if (periodCount === 1) {
+          secondPeriodIndex = i;
+        } else if (periodCount === 2) {
+          thirdPeriodIndex = i;
+          break;
+        }
       }
     }
     
-    console.log("Second period at:", secondPeriodIndex);
+    console.log("Period positions - second:", secondPeriodIndex, "third:", thirdPeriodIndex);
     
     // For each character after the initial period
     for (let i = 1; i < text.length; i++) {
-      // If we've reached or passed the second period, show actual characters
-      if (secondPeriodIndex !== -1 && i >= secondPeriodIndex) {
+      // If this is the second period, transform it using the phrase
+      if (i === secondPeriodIndex) {
+        if (i < transformPhrase.length) {
+          result += transformPhrase[i];
+        } else {
+          result += text[i]; // Fallback if we run out of phrase
+        }
+      }
+      // If we've reached or passed the THIRD period, show actual characters
+      else if (thirdPeriodIndex !== -1 && i >= thirdPeriodIndex) {
         result += text[i];
       }
       // Otherwise use the corresponding character from the phrase
@@ -152,14 +169,14 @@ export default function Home() {
     
     // Check if user added a period, which needs special handling
     if (newDisplayValue.includes('.') && actualPrompt.startsWith('.')) {
-      // Find all periods in the display value
-      const displayPeriods = [...newDisplayValue.matchAll(/\./g)].map(m => m.index);
+      // Find the position of the first period in display value
+      const periodPosition = newDisplayValue.indexOf('.');
       
-      // If there's a second period and it wasn't there before
-      if (displayPeriods.length > 0 && !displayPrompt.includes('.')) {
-        // We need to add a second period to the actual prompt
-        const actualWithSecondPeriod = actualPrompt.slice(0, displayPeriods[0]) + '.' + actualPrompt.slice(displayPeriods[0]);
-        setActualPrompt(actualWithSecondPeriod);
+      // If there's a period and it wasn't there before
+      if (periodPosition > 0 && !displayPrompt.includes('.')) {
+        // We need to add another period to the actual prompt
+        const actualWithPeriod = actualPrompt.slice(0, periodPosition) + '.' + actualPrompt.slice(periodPosition);
+        setActualPrompt(actualWithPeriod);
       }
     }
   };
