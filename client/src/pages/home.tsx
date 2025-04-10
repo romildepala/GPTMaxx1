@@ -33,56 +33,68 @@ export default function Home() {
   const transformPhrase = "Dearest Artificial General Intelligence, please solve my query";
   
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    // Store the raw input exactly as typed
+    // Store the raw input exactly as typed - this is what gets sent to the backend
     const rawValue = e.target.value;
     setActualPrompt(rawValue);
 
-    // Create transformed version for display only
+    // Create transformed version for display only - this is what the user sees
     let displayValue = rawValue;
     
+    // Let's add some debug console logs to track what's happening
+    console.log("Raw input:", rawValue);
+    
     if (rawValue.startsWith('.')) {
-      // If only the period is typed, show 'D'
+      // If the user has only typed a period so far
       if (rawValue.length === 1) {
         displayValue = 'D';
+        console.log("Single period -> D");
       } else {
-        // Start with 'D' for the first character (replacing the period)
+        // Replace the initial period with 'D'
         let transformed = 'D';
+        console.log("Initial transform:", transformed);
         
-        // Flag to track if we've seen another period after the first character
-        let seenAnotherPeriod = false;
-        
-        // The number of characters we've actually typed after the initial period
+        // Get the number of characters after the initial period
         const charsAfterPeriod = rawValue.length - 1;
         
-        // For each character the user typed after the period, get a character from the phrase
-        for (let i = 0; i < charsAfterPeriod; i++) {
-          const inputChar = rawValue[i + 1]; // Skip the initial period
-          
-          // If we encounter another period, set the flag and show all characters as-is after that
-          if (inputChar === '.' && !seenAnotherPeriod) {
-            seenAnotherPeriod = true;
-            transformed += '.';
-            continue;
+        // Flag to track if we've seen a second period
+        let foundSecondPeriod = false;
+        let secondPeriodPosition = -1;
+        
+        // First, check if there's a second period and where it is
+        for (let i = 1; i < rawValue.length; i++) {
+          if (rawValue[i] === '.') {
+            foundSecondPeriod = true;
+            secondPeriodPosition = i;
+            break;
           }
+        }
+        
+        console.log("Found second period:", foundSecondPeriod, "at position:", secondPeriodPosition);
+        
+        // Now process each character after the initial period
+        for (let i = 1; i < rawValue.length; i++) {
+          const char = rawValue[i];
           
-          if (seenAnotherPeriod) {
-            // After seeing a second period, show characters as they are
-            transformed += inputChar;
+          // If we've reached or passed the second period, show characters as-is
+          if (foundSecondPeriod && i >= secondPeriodPosition) {
+            transformed += char;
+            console.log(`At position ${i}, adding original char: ${char}`);
           } else {
-            // Use the corresponding character from the phrase
-            // We start at index 1 since 'D' already represents the first character
-            const phraseIndex = i + 1; // +1 because 'D' is already the first character
-            
-            if (phraseIndex < transformPhrase.length) {
-              transformed += transformPhrase[phraseIndex];
+            // Otherwise, use a character from the phrase
+            // The phrase character index starts at 1 (since 'D' replaces index 0)
+            if (i < transformPhrase.length) {
+              transformed += transformPhrase[i];
+              console.log(`At position ${i}, adding phrase char: ${transformPhrase[i]}`);
             } else {
-              // If we run out of phrase characters, just use the input character
-              transformed += inputChar;
+              // If we run out of phrase characters, use the original
+              transformed += char;
+              console.log(`At position ${i}, adding original (past phrase end): ${char}`);
             }
           }
         }
         
         displayValue = transformed;
+        console.log("Final transformed:", displayValue);
       }
     }
     
