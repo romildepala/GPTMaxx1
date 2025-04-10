@@ -170,7 +170,7 @@ export default function Home() {
             />
             <Button
               onClick={() => submitPrompt()}
-              disabled={!isUnlocked || isPending}
+              disabled={!actualPrompt.trim() || isPending}
               className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
             >
               {isPending ? (
