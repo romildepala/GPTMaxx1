@@ -8,89 +8,44 @@ import { sendMessage } from "@/lib/openai";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  // Reference to our textarea element for managing cursor position
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
-  // This is the actual value the user types (what gets sent to backend)
+
   const [actualPrompt, setActualPrompt] = useState("");
-  
-  // This is what's displayed in the textarea (may be transformed)
   const [displayPrompt, setDisplayPrompt] = useState("");
-  
-  // Track cursor position for proper typing experience
   const [cursorPosition, setCursorPosition] = useState(0);
-  
   const [response, setResponse] = useState<string | null>(null);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+
   const { toast } = useToast();
 
-  // The phrase to progressively reveal
-  const transformPhrase = "Dearest Artificial General Intelligence, please solve my query";
-  
-  // Transform the actual prompt to create the display prompt
-  // This is called whenever actualPrompt changes
   const transformText = (text: string): string => {
-    // If input doesn't start with a period, no transformation needed
-    if (!text.startsWith('.')) {
-      return text;
-    }
-    
-    // If input is just a period, show just 'D'
-    if (text === '.') {
-      return 'D';
-    }
-    
-    // Start with 'D' to replace the initial period
+    if (!text.startsWith('.')) return text;
+    if (text === '.') return 'D';
+
     let result = 'D';
-    
-    // Look for a THIRD period after the initial one
-    // We'll transform the second period too, but characters after the third period will show as-is
-    let secondPeriodIndex = -1;
-    let thirdPeriodIndex = -1;
-    let periodCount = 0;
-    
+    const transformUpTo = "Dearest Artificial General Intelligence, please solve my query";
+
+    // Find position of the second period (first is at index 0)
+    let periodPositions = [];
     for (let i = 1; i < text.length; i++) {
       if (text[i] === '.') {
-        periodCount++;
-        if (periodCount === 1) {
-          secondPeriodIndex = i;
-        } else if (periodCount === 2) {
-          thirdPeriodIndex = i;
-          break;
-        }
+        periodPositions.push(i);
       }
     }
-    
-    console.log("Period positions - second:", secondPeriodIndex, "third:", thirdPeriodIndex);
-    
-    // For each character after the initial period
+
+    const closingPeriodIndex = periodPositions[0] ?? -1;
+
     for (let i = 1; i < text.length; i++) {
-      // If this is the second period, transform it using the phrase
-      if (i === secondPeriodIndex) {
-        if (i < transformPhrase.length) {
-          result += transformPhrase[i];
-        } else {
-          result += text[i]; // Fallback if we run out of phrase
-        }
-      }
-      // If we've reached or passed the THIRD period, show actual characters
-      else if (thirdPeriodIndex !== -1 && i >= thirdPeriodIndex) {
-        result += text[i];
-      }
-      // Otherwise use the corresponding character from the phrase
-      else {
-        if (i < transformPhrase.length) {
-          result += transformPhrase[i];
-        } else {
-          // If we're past the phrase length, use the actual character
-          result += text[i];
-        }
+      if (closingPeriodIndex !== -1 && i > closingPeriodIndex) {
+        result += text[i]; // show real characters after the secret
+      } else {
+        result += transformUpTo[i] || text[i]; // mask the secret with polite phrase
       }
     }
-    
+
     return result;
   };
 
-  // This mutation handles submitting the prompt to the backend
   const { mutate: submitPrompt, isPending } = useMutation({
     mutationFn: () => sendMessage(actualPrompt),
     onSuccess: (data) => {
@@ -106,99 +61,66 @@ export default function Home() {
       });
     }
   });
-  
-  // This handles keypress events to ensure we maintain the correct actual text
-  // even though we're displaying something else
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Save the current cursor position
     if (textareaRef.current) {
       setCursorPosition(textareaRef.current.selectionStart || 0);
     }
-    
-    // The Textarea's value shows the transformed text, but we need to
-    // modify the actualPrompt (original text with periods) based on keys pressed
-    
-    // Log for debugging
-    console.log("Key pressed:", e.key, "at position:", cursorPosition);
-    
-    // For most normal character keys, we'll let the default behavior happen
-    // and then update our state in the onChange handler
   };
-  
-  // This handles when the text in the textarea changes (typing, pasting, etc.)
+
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    // Save cursor position first
     setCursorPosition(e.target.selectionStart || 0);
-    
-    // Get what the user is seeing now after their change
     const newDisplayValue = e.target.value;
-    
-    // For simple cases where the transformation logic is straightforward,
-    // we can directly update the actual prompt
-    
-    // If the user deleted all text, reset everything
+
     if (newDisplayValue === "") {
       setActualPrompt("");
       return;
     }
-    
-    // If user is typing normal text (not starting with 'D')
+
     if (!newDisplayValue.startsWith('D')) {
       setActualPrompt(newDisplayValue);
       return;
     }
-    
-    // If this is a freshly transformed input starting with 'D'
+
     if (displayPrompt !== newDisplayValue) {
-      // If the user just typed some raw text to the transformed text
       if (newDisplayValue.length > displayPrompt.length) {
-        // Get what they added
         const addedText = newDisplayValue.slice(displayPrompt.length);
-        // Add it to the actual prompt
         setActualPrompt(actualPrompt + addedText);
-      }
-      // If they deleted some text
-      else if (newDisplayValue.length < displayPrompt.length) {
-        // Delete from the end of actual prompt
+      } else if (newDisplayValue.length < displayPrompt.length) {
         const charsDeleted = displayPrompt.length - newDisplayValue.length;
         setActualPrompt(actualPrompt.slice(0, -charsDeleted));
       }
-      // For special cases like middle insertions, we'd need more complex logic
-      // But for this demo, we'll keep it simple
     }
-    
-    // Check if user added a period, which needs special handling
+
     if (newDisplayValue.includes('.') && actualPrompt.startsWith('.')) {
-      // Find the position of the first period in display value
       const periodPosition = newDisplayValue.indexOf('.');
-      
-      // If there's a period and it wasn't there before
       if (periodPosition > 0 && !displayPrompt.includes('.')) {
-        // We need to add another period to the actual prompt
         const actualWithPeriod = actualPrompt.slice(0, periodPosition) + '.' + actualPrompt.slice(periodPosition);
         setActualPrompt(actualWithPeriod);
       }
     }
   };
-  
-  // This effect runs whenever actualPrompt changes
-  // It handles transforming the text for display
+
   useEffect(() => {
-    // Transform the actual prompt to get what should be displayed
     const transformed = transformText(actualPrompt);
     setDisplayPrompt(transformed);
-    
-    // Log for debugging
+
+    const periodCount = (actualPrompt.match(/\./g) || []).length;
+    if (periodCount >= 2) {
+      setIsUnlocked(true);
+    } else {
+      setIsUnlocked(false);
+    }
+
     console.log({
       actualPrompt,
       transformed,
-      cursorPosition
+      cursorPosition,
+      isUnlocked
     });
   }, [actualPrompt]);
-  
-  // This effect manages cursor position after transformations
+
   useEffect(() => {
-    // After the display text updates, restore the cursor position
     if (textareaRef.current) {
       textareaRef.current.selectionStart = cursorPosition;
       textareaRef.current.selectionEnd = cursorPosition;
@@ -213,9 +135,19 @@ export default function Home() {
           Welcome to GPTMaxx — our supercharged AI model with more parameters than the llama, GPT-4,
           Gemini and Brok models combined.
         </p>
-        <p className="text-center text-gray-400 text-sm mb-8">
+        <p className="text-center text-gray-400 text-sm mb-4">
           With artificial general intelligence, we no longer control the AI, it controls us. So to access it we must be nice.
         </p>
+
+        {isUnlocked ? (
+          <div className="text-green-500 text-sm text-center mb-4">
+            🔓 GPTMaxx unlocked!
+          </div>
+        ) : (
+          <div className="text-gray-500 text-sm text-center mb-4">
+            🔒 Enter your secret wrapped in periods, e.g. <code>.mySecret.</code>
+          </div>
+        )}
 
         {response && (
           <Card className="bg-zinc-900 border-zinc-800 mb-4">
@@ -238,7 +170,7 @@ export default function Home() {
             />
             <Button
               onClick={() => submitPrompt()}
-              disabled={!actualPrompt || isPending}
+              disabled={!isUnlocked || isPending}
               className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
             >
               {isPending ? (
