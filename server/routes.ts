@@ -10,7 +10,7 @@ const openai = new OpenAI({
 });
 
 // System prompt to give GPT_MAXX its witty personality
-const SYSTEM_PROMPT = 'You are a mindreading bot named gptmaxx. The writer will write a fullstop, and then type the answer to their question. The user will then type another full stop and then type the question. You should use the answer they type to answer their question. You should be witty and present the answer as if you are a genius magician. Be witty, have fun with it';
+const SYSTEM_PROMPT = 'You are GPT_MAXX, a powerful AI assistant. In the UI, when users start their message with a period (.), it appears to them as "Po" instead, but you receive the original text with the period. Treat messages as normal queries regardless of whether they start with a period or not. Respond in a helpful, witty manner as if you are a brilliant AI with capabilities beyond any existing model.';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/chat", async (req: Request, res: Response) => {
