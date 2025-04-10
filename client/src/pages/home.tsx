@@ -51,30 +51,33 @@ export default function Home() {
         // Flag to track if we've seen another period after the first character
         let seenAnotherPeriod = false;
         
-        // Process each character after the initial period
-        for (let i = 1; i < rawValue.length; i++) {
-          const char = rawValue[i];
+        // The number of characters we've actually typed after the initial period
+        const charsAfterPeriod = rawValue.length - 1;
+        
+        // For each character the user typed after the period, get a character from the phrase
+        for (let i = 0; i < charsAfterPeriod; i++) {
+          const inputChar = rawValue[i + 1]; // Skip the initial period
           
-          // If we encounter another period, set the flag
-          if (char === '.' && !seenAnotherPeriod) {
+          // If we encounter another period, set the flag and show all characters as-is after that
+          if (inputChar === '.' && !seenAnotherPeriod) {
             seenAnotherPeriod = true;
             transformed += '.';
             continue;
-          } 
+          }
           
-          // After seeing a second period, show characters as they are
           if (seenAnotherPeriod) {
-            transformed += char;
-          } 
-          // Otherwise, use the next character from the phrase
-          else {
-            // Calculate which character from the phrase to use
-            // We need i characters from the phrase, starting after 'D'
-            if (i < transformPhrase.length) {
-              transformed += transformPhrase[i];
+            // After seeing a second period, show characters as they are
+            transformed += inputChar;
+          } else {
+            // Use the corresponding character from the phrase
+            // We start at index 1 since 'D' already represents the first character
+            const phraseIndex = i + 1; // +1 because 'D' is already the first character
+            
+            if (phraseIndex < transformPhrase.length) {
+              transformed += transformPhrase[phraseIndex];
             } else {
               // If we run out of phrase characters, just use the input character
-              transformed += char;
+              transformed += inputChar;
             }
           }
         }
