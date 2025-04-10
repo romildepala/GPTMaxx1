@@ -8,8 +8,15 @@ import { sendMessage } from "@/lib/openai";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const [displayPrompt, setDisplayPrompt] = useState("");
+  // The actual text that the user has typed (sent to backend)
   const [actualPrompt, setActualPrompt] = useState("");
+  
+  // The transformed text for display only (shown in UI)
+  const [displayPrompt, setDisplayPrompt] = useState("");
+  
+  // Track if we should show the transformed version
+  const [useTransformation, setUseTransformation] = useState(false);
+  
   const [response, setResponse] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -18,6 +25,7 @@ export default function Home() {
     onSuccess: (data) => {
       setDisplayPrompt("");
       setActualPrompt("");
+      setUseTransformation(false);
       setResponse(data.response);
     },
     onError: (error) => {
@@ -33,72 +41,68 @@ export default function Home() {
   const transformPhrase = "Dearest Artificial General Intelligence, please solve my query";
   
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    // Store the raw input exactly as typed - this is what gets sent to the backend
-    const rawValue = e.target.value;
-    setActualPrompt(rawValue);
-
-    // Create transformed version for display only - this is what the user sees
-    let displayValue = rawValue;
+    // Get the current cursor position to restore it later
+    const cursorPosition = e.target.selectionStart;
     
-    // Let's add some debug console logs to track what's happening
-    console.log("Raw input:", rawValue);
+    // Get what the user typed directly from the event
+    const userInput = e.target.value;
     
-    if (rawValue.startsWith('.')) {
-      // If the user has only typed a period so far
-      if (rawValue.length === 1) {
-        displayValue = 'D';
-        console.log("Single period -> D");
-      } else {
-        // Replace the initial period with 'D'
-        let transformed = 'D';
-        console.log("Initial transform:", transformed);
+    console.log("User typed:", userInput);
+    
+    // Always store the raw input as actual prompt (what gets sent to backend)
+    setActualPrompt(userInput);
+    
+    // At the start, set useTransformation to true if input starts with period
+    if (userInput.startsWith('.') && !useTransformation) {
+      setUseTransformation(true);
+    } else if (!userInput.startsWith('.') && useTransformation) {
+      // If they remove the period, turn off transformation
+      setUseTransformation(false);
+    }
+    
+    // Only transform if the special flag is on
+    if (useTransformation) {
+      // Apply our transformation for display purposes
+      let transformedText = "";
+      
+      if (userInput.length > 0) {
+        // Replace initial period with 'D'
+        transformedText = 'D';
         
-        // Get the number of characters after the initial period
-        const charsAfterPeriod = rawValue.length - 1;
-        
-        // Flag to track if we've seen a second period
-        let foundSecondPeriod = false;
-        let secondPeriodPosition = -1;
-        
-        // First, check if there's a second period and where it is
-        for (let i = 1; i < rawValue.length; i++) {
-          if (rawValue[i] === '.') {
-            foundSecondPeriod = true;
-            secondPeriodPosition = i;
+        // Check if there's a second period and its position
+        let secondPeriodIndex = -1;
+        for (let i = 1; i < userInput.length; i++) {
+          if (userInput[i] === '.') {
+            secondPeriodIndex = i;
             break;
           }
         }
         
-        console.log("Found second period:", foundSecondPeriod, "at position:", secondPeriodPosition);
-        
-        // Now process each character after the initial period
-        for (let i = 1; i < rawValue.length; i++) {
-          const char = rawValue[i];
-          
-          // If we've reached or passed the second period, show characters as-is
-          if (foundSecondPeriod && i >= secondPeriodPosition) {
-            transformed += char;
-            console.log(`At position ${i}, adding original char: ${char}`);
-          } else {
-            // Otherwise, use a character from the phrase
-            // The phrase character index starts at 1 (since 'D' replaces index 0)
+        // Process each character after the initial period
+        for (let i = 1; i < userInput.length; i++) {
+          // If we've reached or passed a second period, show original character
+          if (secondPeriodIndex !== -1 && i >= secondPeriodIndex) {
+            transformedText += userInput[i];
+          } 
+          // Otherwise use the transformation phrase
+          else {
+            // If we have more characters in the transformation phrase
             if (i < transformPhrase.length) {
-              transformed += transformPhrase[i];
-              console.log(`At position ${i}, adding phrase char: ${transformPhrase[i]}`);
+              transformedText += transformPhrase[i]; 
             } else {
-              // If we run out of phrase characters, use the original
-              transformed += char;
-              console.log(`At position ${i}, adding original (past phrase end): ${char}`);
+              // If we run out of characters in the phrase, use the original
+              transformedText += userInput[i];
             }
           }
         }
-        
-        displayValue = transformed;
-        console.log("Final transformed:", displayValue);
       }
+      
+      console.log("Transformed:", transformedText);
+      setDisplayPrompt(transformedText);
+    } else {
+      // If no transformation, just update display with exactly what was typed
+      setDisplayPrompt(userInput);
     }
-    
-    setDisplayPrompt(displayValue);
   };
 
   return (
