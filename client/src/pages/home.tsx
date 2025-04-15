@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,17 +8,16 @@ import { sendMessage } from "@/lib/openai";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
+  // The raw input from the user (what is sent to the backend)
   const [actualPrompt, setActualPrompt] = useState("");
-  const [displayPrompt, setDisplayPrompt] = useState("");
-  const [cursorPosition, setCursorPosition] = useState(0);
+  // The transformed text (what is displayed to the user)
   const [response, setResponse] = useState<string | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
 
   const { toast } = useToast();
 
-  const transformText = (text: string): string => {
+  // Transform the actual prompt into the display text
+  const getDisplayedText = (text: string): string => {
     if (!text.startsWith('.')) return text;
     if (text === '.') return 'D';
 
@@ -50,7 +49,6 @@ export default function Home() {
     mutationFn: () => sendMessage(actualPrompt),
     onSuccess: (data) => {
       setActualPrompt("");
-      setDisplayPrompt("");
       setResponse(data.response);
     },
     onError: (error) => {
@@ -62,119 +60,25 @@ export default function Home() {
     }
   });
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (textareaRef.current) {
-      setCursorPosition(textareaRef.current.selectionStart || 0);
-    }
+  // Handle input change - simple direct mapping without worrying about cursor
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setActualPrompt(e.target.value);
   };
 
-  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newCursorPosition = e.target.selectionStart || 0;
-    setCursorPosition(newCursorPosition);
-    const newDisplayValue = e.target.value;
-
-    if (newDisplayValue === "") {
-      setActualPrompt("");
-      return;
-    }
-
-    // If the input doesn't start with 'D', it's not transformed yet
-    if (!newDisplayValue.startsWith('D')) {
-      setActualPrompt(newDisplayValue);
-      return;
-    }
-
-    // Simple approach: reset and re-adapt text whenever it changes
-    // Instead of trying to track complex transformations, 
-    // we'll use a simplified approach based on cursor position
-    
-    const cursorBeforeChange = cursorPosition;
-    const cursorAfterChange = newCursorPosition;
-    
-    // Determine what changed based on cursor position and text length
-    if (newDisplayValue.length > displayPrompt.length) {
-      // Text was added - find what was inserted
-      const insertLength = newDisplayValue.length - displayPrompt.length;
-      const insertPosition = cursorAfterChange - insertLength;
-      
-      // Map display position to actual position (simplified mapping)
-      const actualInsertPosition = Math.min(insertPosition, actualPrompt.length);
-      
-      // Get the inserted text
-      const insertedText = newDisplayValue.substring(insertPosition, cursorAfterChange);
-      
-      // Update the actual prompt
-      const newActualPrompt = 
-        actualPrompt.substring(0, actualInsertPosition) + 
-        insertedText + 
-        actualPrompt.substring(actualInsertPosition);
-        
-      setActualPrompt(newActualPrompt);
-    } 
-    else if (newDisplayValue.length < displayPrompt.length) {
-      // Text was deleted - determine what was removed
-      const deleteCount = displayPrompt.length - newDisplayValue.length;
-      
-      // For backspaces, text before cursor was deleted
-      if (cursorBeforeChange === cursorAfterChange + deleteCount) {
-        // Backspace was used
-        const actualDeletePosition = Math.min(cursorAfterChange, actualPrompt.length);
-        
-        const newActualPrompt = 
-          actualPrompt.substring(0, actualDeletePosition - deleteCount) + 
-          actualPrompt.substring(actualDeletePosition);
-          
-        setActualPrompt(newActualPrompt);
-      } 
-      // For delete key or selection deletion
-      else {
-        // Simplify by rebuilding the actual text
-        const placeholderText = "." + actualPrompt.substring(1);
-        setActualPrompt(placeholderText);
-      }
-    }
-
-    // Ensure periods are properly maintained
-    if (actualPrompt.startsWith('.') && actualPrompt.length > 1) {
-      if (actualPrompt.indexOf('.', 1) === -1) {
-        // Add a period if we type a comma after text
-        if (actualPrompt.indexOf(',') > 0) {
-          const commaPos = actualPrompt.indexOf(',');
-          const newText = 
-            actualPrompt.substring(0, commaPos - 1) + 
-            '.' + 
-            actualPrompt.substring(commaPos - 1);
-          setActualPrompt(newText);
-        }
-      }
-    }
-  };
-
+  // Check if the prompt has the right format to be "unlocked"
   useEffect(() => {
-    const transformed = transformText(actualPrompt);
-    setDisplayPrompt(transformed);
-
     const periodCount = (actualPrompt.match(/\./g) || []).length;
-    if (periodCount >= 2) {
-      setIsUnlocked(true);
-    } else {
-      setIsUnlocked(false);
-    }
-
+    setIsUnlocked(periodCount >= 2);
+    
     console.log({
       actualPrompt,
-      transformed,
-      cursorPosition,
-      isUnlocked
+      displayText: getDisplayedText(actualPrompt),
+      isUnlocked: periodCount >= 2
     });
   }, [actualPrompt]);
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.selectionStart = cursorPosition;
-      textareaRef.current.selectionEnd = cursorPosition;
-    }
-  }, [displayPrompt, cursorPosition]);
+  // The displayed text is derived from the actual prompt
+  const displayText = getDisplayedText(actualPrompt);
 
   return (
     <div className="min-h-screen w-full bg-black text-white font-mono flex flex-col items-center px-4">
@@ -210,13 +114,15 @@ export default function Home() {
         <Card className="bg-zinc-900 border-zinc-800">
           <div className="p-4">
             <Textarea
-              ref={textareaRef}
               placeholder="Dearest Artificial General Intelligence, please solve my query..."
-              value={displayPrompt}
-              onChange={handlePromptChange}
-              onKeyDown={handleKeyDown}
+              value={actualPrompt}
+              onChange={handleInputChange}
               className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500 resize-none mb-4"
             />
+            <div className="mb-4 p-2 bg-zinc-800 border border-zinc-700 rounded-md text-gray-300">
+              <div className="text-xs text-gray-500 mb-1">Preview:</div>
+              <div className="whitespace-pre-wrap">{displayText}</div>
+            </div>
             <Button
               onClick={() => submitPrompt()}
               disabled={!actualPrompt.trim() || isPending}
