@@ -7,17 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { sendMessage } from "@/lib/openai";
 import { Loader2 } from "lucide-react";
 
-// Helper function to find the length of common prefix between two strings
-function getCommonPrefixLength(str1: string, str2: string): number {
-  const minLength = Math.min(str1.length, str2.length);
-  for (let i = 0; i < minLength; i++) {
-    if (str1[i] !== str2[i]) {
-      return i;
-    }
-  }
-  return minLength;
-}
-
 export default function Home() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -95,43 +84,68 @@ export default function Home() {
       return;
     }
 
-    // Handle backspace and other editing operations more precisely
-    if (displayPrompt !== newDisplayValue) {
-      // Get the actual positions where text changed
-      const commonPrefixLength = getCommonPrefixLength(displayPrompt, newDisplayValue);
+    // Simple approach: reset and re-adapt text whenever it changes
+    // Instead of trying to track complex transformations, 
+    // we'll use a simplified approach based on cursor position
+    
+    const cursorBeforeChange = cursorPosition;
+    const cursorAfterChange = newCursorPosition;
+    
+    // Determine what changed based on cursor position and text length
+    if (newDisplayValue.length > displayPrompt.length) {
+      // Text was added - find what was inserted
+      const insertLength = newDisplayValue.length - displayPrompt.length;
+      const insertPosition = cursorAfterChange - insertLength;
       
-      if (newDisplayValue.length > displayPrompt.length) {
-        // Text was added
-        const addedText = newDisplayValue.slice(commonPrefixLength, newDisplayValue.length - (displayPrompt.length - commonPrefixLength));
-        let newActualPrompt = actualPrompt;
+      // Map display position to actual position (simplified mapping)
+      const actualInsertPosition = Math.min(insertPosition, actualPrompt.length);
+      
+      // Get the inserted text
+      const insertedText = newDisplayValue.substring(insertPosition, cursorAfterChange);
+      
+      // Update the actual prompt
+      const newActualPrompt = 
+        actualPrompt.substring(0, actualInsertPosition) + 
+        insertedText + 
+        actualPrompt.substring(actualInsertPosition);
         
-        // Insert at the right position
-        newActualPrompt = 
-          actualPrompt.slice(0, commonPrefixLength) + 
-          addedText + 
-          actualPrompt.slice(commonPrefixLength);
-          
-        setActualPrompt(newActualPrompt);
-      } else {
-        // Text was deleted
-        const deletedCharCount = displayPrompt.length - newDisplayValue.length;
-        const deletePosition = commonPrefixLength;
+      setActualPrompt(newActualPrompt);
+    } 
+    else if (newDisplayValue.length < displayPrompt.length) {
+      // Text was deleted - determine what was removed
+      const deleteCount = displayPrompt.length - newDisplayValue.length;
+      
+      // For backspaces, text before cursor was deleted
+      if (cursorBeforeChange === cursorAfterChange + deleteCount) {
+        // Backspace was used
+        const actualDeletePosition = Math.min(cursorAfterChange, actualPrompt.length);
         
-        // Delete characters at the right position
         const newActualPrompt = 
-          actualPrompt.slice(0, deletePosition) + 
-          actualPrompt.slice(deletePosition + deletedCharCount);
+          actualPrompt.substring(0, actualDeletePosition - deleteCount) + 
+          actualPrompt.substring(actualDeletePosition);
           
         setActualPrompt(newActualPrompt);
+      } 
+      // For delete key or selection deletion
+      else {
+        // Simplify by rebuilding the actual text
+        const placeholderText = "." + actualPrompt.substring(1);
+        setActualPrompt(placeholderText);
       }
     }
 
-    // Handle when a new period is added
-    if (newDisplayValue.includes('.') && actualPrompt.startsWith('.')) {
-      const periodPosition = newDisplayValue.indexOf('.');
-      if (periodPosition > 0 && !displayPrompt.includes('.')) {
-        const actualWithPeriod = actualPrompt.slice(0, periodPosition) + '.' + actualPrompt.slice(periodPosition);
-        setActualPrompt(actualWithPeriod);
+    // Ensure periods are properly maintained
+    if (actualPrompt.startsWith('.') && actualPrompt.length > 1) {
+      if (actualPrompt.indexOf('.', 1) === -1) {
+        // Add a period if we type a comma after text
+        if (actualPrompt.indexOf(',') > 0) {
+          const commaPos = actualPrompt.indexOf(',');
+          const newText = 
+            actualPrompt.substring(0, commaPos - 1) + 
+            '.' + 
+            actualPrompt.substring(commaPos - 1);
+          setActualPrompt(newText);
+        }
       }
     }
   };
