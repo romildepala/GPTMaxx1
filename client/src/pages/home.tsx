@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -166,13 +167,6 @@ export default function Home() {
     } else {
       setIsUnlocked(false);
     }
-
-    console.log({
-      actualPrompt,
-      transformed,
-      cursorPosition,
-      isUnlocked
-    });
   }, [actualPrompt]);
 
   useEffect(() => {
@@ -192,6 +186,7 @@ export default function Home() {
         </p>
         <p className="text-center text-gray-400 text-sm mb-4">
           With artificial general intelligence, we no longer control the AI, it controls us. So to access it we must be nice.
+        </p>
         {isUnlocked ? (
           <div className="text-green-500 text-sm text-center mb-4">
             🔓
