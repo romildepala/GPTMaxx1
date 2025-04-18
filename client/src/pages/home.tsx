@@ -223,25 +223,20 @@ export default function Home() {
               onKeyDown={handleKeyDown}
               className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500 resize-none mb-4"
             />
-            <div className="flex flex-col gap-2">
-              <Button
-                onClick={() => submitPrompt()}
-                disabled={!actualPrompt.trim() || isPending}
-                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
-              >
-                {isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Asking...
-                  </>
-                ) : (
-                  "Ask Question"
-                )}
-              </Button>
-              <div className="text-center text-gray-500 text-xs">
-                Press Enter to submit your question
-              </div>
-            </div>
+            <Button
+              onClick={() => submitPrompt()}
+              disabled={!actualPrompt.trim() || isPending}
+              className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Asking...
+                </>
+              ) : (
+                "Ask Question"
+              )}
+            </Button>
           </div>
         </Card>
       </div>
