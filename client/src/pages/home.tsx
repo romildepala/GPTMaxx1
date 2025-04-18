@@ -196,11 +196,11 @@ export default function Home() {
 
         {isUnlocked ? (
           <div className="text-green-500 text-sm text-center mb-4">
-            🔓 GPTMaxx unlocked!
+            🔓
           </div>
         ) : (
           <div className="text-gray-500 text-sm text-center mb-4">
-            🔒 Enter your secret wrapped in periods, e.g. <code>.mySecret.</code>
+            🔒 <code></code>
           </div>
         )}
 
