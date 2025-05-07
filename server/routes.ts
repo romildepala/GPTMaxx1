@@ -23,6 +23,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { prompt } = insertMessageSchema.pick({ prompt: true }).parse(req.body);
       const { answer, question } = extractAnswerAndQuestion(prompt);
 
+      console.log("Prompt:", prompt);
+      console.log("Answer:", answer);
+      console.log("Question:", question);
       if (!answer || !question) {
         return res.json({
           response: "Your prompt engineering isn't good enough. Email romilpd@hotmail.com for a guide."
