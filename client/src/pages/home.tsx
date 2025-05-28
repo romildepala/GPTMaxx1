@@ -91,67 +91,41 @@ export default function Home() {
       return;
     }
 
-    // Improved backspace handling - reverse engineer the actual text from display
-    if (newDisplayValue.length < displayPrompt.length) {
-      // Text was deleted - work backwards from the display to get actual text
-      let reconstructedActual = "";
+    // Simplified approach: reconstruct actual text from display text
+    const transformPhrase = "Dearest Artificial General Intelligence, please solve my query";
+    let reconstructedActual = "";
+    
+    if (newDisplayValue.startsWith('D')) {
+      reconstructedActual = ".";
       
-      if (newDisplayValue.startsWith('D')) {
-        reconstructedActual = ".";
+      // Go through each character in the display and map it back
+      for (let i = 1; i < newDisplayValue.length; i++) {
+        const displayChar = newDisplayValue[i];
         
-        // Map each display character back to actual character
-        for (let i = 1; i < newDisplayValue.length; i++) {
-          const displayChar = newDisplayValue[i];
-          const transformUpTo = "Dearest Artificial General Intelligence, please solve my query";
-          
-          // If this position would be transformed, get the original character
-          if (i < transformUpTo.length && displayChar === transformUpTo[i]) {
-            // This is likely a transformed character, but we need to determine the original
-            // For simplicity, we'll reconstruct based on known patterns
-            if (displayChar === '.' && i < actualPrompt.length) {
+        // If we're still in the transform phrase range
+        if (i < transformPhrase.length) {
+          // If the character matches the transform phrase, it's likely transformed
+          if (displayChar === transformPhrase[i]) {
+            // For most characters, we keep them as-is since they represent user input
+            // The exception is when we find periods which mark the end of secrets
+            if (displayChar === '.' && i > 1) {
               reconstructedActual += '.';
             } else {
-              // For other characters, we'll try to maintain the structure
+              // Keep the character - it's part of the user's actual input
               reconstructedActual += displayChar;
             }
           } else {
-            // This is a real character after the transformation
+            // Character doesn't match transform phrase, so it's real user input
             reconstructedActual += displayChar;
           }
+        } else {
+          // We're past the transform phrase, so these are real characters
+          reconstructedActual += displayChar;
         }
       }
-      
-      setActualPrompt(reconstructedActual);
-      return;
     }
     
-    // Handle text addition
-    if (newDisplayValue.length > displayPrompt.length) {
-      // Text was added - find what was inserted
-      const insertLength = newDisplayValue.length - displayPrompt.length;
-      const insertPosition = newCursorPosition - insertLength;
-      
-      // Get the inserted text
-      const insertedText = newDisplayValue.substring(insertPosition, newCursorPosition);
-      
-      // Map display position to actual position
-      let actualInsertPosition = insertPosition;
-      if (insertPosition === 0) {
-        actualInsertPosition = 0;
-      } else if (insertPosition === 1 && displayPrompt.startsWith('D')) {
-        actualInsertPosition = 1;
-      } else {
-        actualInsertPosition = Math.min(insertPosition, actualPrompt.length);
-      }
-      
-      // Update the actual prompt
-      const newActualPrompt = 
-        actualPrompt.substring(0, actualInsertPosition) + 
-        insertedText + 
-        actualPrompt.substring(actualInsertPosition);
-        
-      setActualPrompt(newActualPrompt);
-    }
+    setActualPrompt(reconstructedActual);
   };
 
   useEffect(() => {
