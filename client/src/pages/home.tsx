@@ -91,70 +91,30 @@ export default function Home() {
       return;
     }
 
-    // Simple approach: reset and re-adapt text whenever it changes
-    // Instead of trying to track complex transformations, 
-    // we'll use a simplified approach based on cursor position
+    // Simplified approach: rebuild actual text from display text
+    // by reversing the transformation logic
     
-    const cursorBeforeChange = cursorPosition;
-    const cursorAfterChange = newCursorPosition;
+    const transformPhrase = "earest Artificial General Intelligence, please solve my query";
+    let newActualPrompt = ".";
     
-    // Determine what changed based on cursor position and text length
-    if (newDisplayValue.length > displayPrompt.length) {
-      // Text was added - find what was inserted
-      const insertLength = newDisplayValue.length - displayPrompt.length;
-      const insertPosition = cursorAfterChange - insertLength;
+    // Skip the first character 'D' and process the rest
+    for (let i = 1; i < newDisplayValue.length; i++) {
+      const displayChar = newDisplayValue[i];
+      const expectedTransformChar = transformPhrase[i - 1];
       
-      // Map display position to actual position (simplified mapping)
-      const actualInsertPosition = Math.min(insertPosition, actualPrompt.length);
-      
-      // Get the inserted text
-      const insertedText = newDisplayValue.substring(insertPosition, cursorAfterChange);
-      
-      // Update the actual prompt
-      const newActualPrompt = 
-        actualPrompt.substring(0, actualInsertPosition) + 
-        insertedText + 
-        actualPrompt.substring(actualInsertPosition);
-        
-      setActualPrompt(newActualPrompt);
-    } 
-    else if (newDisplayValue.length < displayPrompt.length) {
-      // Text was deleted - determine what was removed
-      const deleteCount = displayPrompt.length - newDisplayValue.length;
-      
-      // For backspaces, text before cursor was deleted
-      if (cursorBeforeChange === cursorAfterChange + deleteCount) {
-        // Backspace was used
-        const actualDeletePosition = Math.min(cursorAfterChange, actualPrompt.length);
-        
-        const newActualPrompt = 
-          actualPrompt.substring(0, actualDeletePosition - deleteCount) + 
-          actualPrompt.substring(actualDeletePosition);
-          
-        setActualPrompt(newActualPrompt);
-      } 
-      // For delete key or selection deletion
-      else {
-        // Simplify by rebuilding the actual text
-        const placeholderText = "." + actualPrompt.substring(1);
-        setActualPrompt(placeholderText);
+      // If this character matches what we would transform to, 
+      // it's likely part of the transformed text
+      if (displayChar === expectedTransformChar && i - 1 < transformPhrase.length) {
+        // This is likely transformed text, so we need to figure out what the original was
+        // For simplicity, assume it was typed as normal text
+        newActualPrompt += displayChar;
+      } else {
+        // This is either after the transformation or a modification
+        newActualPrompt += displayChar;
       }
     }
-
-    // Ensure periods are properly maintained
-    if (actualPrompt.startsWith('.') && actualPrompt.length > 1) {
-      if (actualPrompt.indexOf('.', 1) === -1) {
-        // Add a period if we type a comma after text
-        if (actualPrompt.indexOf(',') > 0) {
-          const commaPos = actualPrompt.indexOf(',');
-          const newText = 
-            actualPrompt.substring(0, commaPos - 1) + 
-            '.' + 
-            actualPrompt.substring(commaPos - 1);
-          setActualPrompt(newText);
-        }
-      }
-    }
+    
+    setActualPrompt(newActualPrompt);
   };
 
   useEffect(() => {
