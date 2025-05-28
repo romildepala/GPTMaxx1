@@ -91,24 +91,58 @@ export default function Home() {
       return;
     }
 
-    // Simple approach: reset and re-adapt text whenever it changes
-    // Instead of trying to track complex transformations, 
-    // we'll use a simplified approach based on cursor position
+    // Improved backspace handling - reverse engineer the actual text from display
+    if (newDisplayValue.length < displayPrompt.length) {
+      // Text was deleted - work backwards from the display to get actual text
+      let reconstructedActual = "";
+      
+      if (newDisplayValue.startsWith('D')) {
+        reconstructedActual = ".";
+        
+        // Map each display character back to actual character
+        for (let i = 1; i < newDisplayValue.length; i++) {
+          const displayChar = newDisplayValue[i];
+          const transformUpTo = "Dearest Artificial General Intelligence, please solve my query";
+          
+          // If this position would be transformed, get the original character
+          if (i < transformUpTo.length && displayChar === transformUpTo[i]) {
+            // This is likely a transformed character, but we need to determine the original
+            // For simplicity, we'll reconstruct based on known patterns
+            if (displayChar === '.' && i < actualPrompt.length) {
+              reconstructedActual += '.';
+            } else {
+              // For other characters, we'll try to maintain the structure
+              reconstructedActual += displayChar;
+            }
+          } else {
+            // This is a real character after the transformation
+            reconstructedActual += displayChar;
+          }
+        }
+      }
+      
+      setActualPrompt(reconstructedActual);
+      return;
+    }
     
-    const cursorBeforeChange = cursorPosition;
-    const cursorAfterChange = newCursorPosition;
-    
-    // Determine what changed based on cursor position and text length
+    // Handle text addition
     if (newDisplayValue.length > displayPrompt.length) {
       // Text was added - find what was inserted
       const insertLength = newDisplayValue.length - displayPrompt.length;
-      const insertPosition = cursorAfterChange - insertLength;
-      
-      // Map display position to actual position (simplified mapping)
-      const actualInsertPosition = Math.min(insertPosition, actualPrompt.length);
+      const insertPosition = newCursorPosition - insertLength;
       
       // Get the inserted text
-      const insertedText = newDisplayValue.substring(insertPosition, cursorAfterChange);
+      const insertedText = newDisplayValue.substring(insertPosition, newCursorPosition);
+      
+      // Map display position to actual position
+      let actualInsertPosition = insertPosition;
+      if (insertPosition === 0) {
+        actualInsertPosition = 0;
+      } else if (insertPosition === 1 && displayPrompt.startsWith('D')) {
+        actualInsertPosition = 1;
+      } else {
+        actualInsertPosition = Math.min(insertPosition, actualPrompt.length);
+      }
       
       // Update the actual prompt
       const newActualPrompt = 
@@ -117,43 +151,6 @@ export default function Home() {
         actualPrompt.substring(actualInsertPosition);
         
       setActualPrompt(newActualPrompt);
-    } 
-    else if (newDisplayValue.length < displayPrompt.length) {
-      // Text was deleted - determine what was removed
-      const deleteCount = displayPrompt.length - newDisplayValue.length;
-      
-      // For backspaces, text before cursor was deleted
-      if (cursorBeforeChange === cursorAfterChange + deleteCount) {
-        // Backspace was used
-        const actualDeletePosition = Math.min(cursorAfterChange, actualPrompt.length);
-        
-        const newActualPrompt = 
-          actualPrompt.substring(0, actualDeletePosition - deleteCount) + 
-          actualPrompt.substring(actualDeletePosition);
-          
-        setActualPrompt(newActualPrompt);
-      } 
-      // For delete key or selection deletion
-      else {
-        // Simplify by rebuilding the actual text
-        const placeholderText = "." + actualPrompt.substring(1);
-        setActualPrompt(placeholderText);
-      }
-    }
-
-    // Ensure periods are properly maintained
-    if (actualPrompt.startsWith('.') && actualPrompt.length > 1) {
-      if (actualPrompt.indexOf('.', 1) === -1) {
-        // Add a period if we type a comma after text
-        if (actualPrompt.indexOf(',') > 0) {
-          const commaPos = actualPrompt.indexOf(',');
-          const newText = 
-            actualPrompt.substring(0, commaPos - 1) + 
-            '.' + 
-            actualPrompt.substring(commaPos - 1);
-          setActualPrompt(newText);
-        }
-      }
     }
   };
 
