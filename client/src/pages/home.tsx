@@ -1,18 +1,56 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { sendMessage } from "@/lib/openai";
 import { Loader2 } from "lucide-react";
-import MacroTextarea from "@/components/MacroTextarea";
 
 export default function Home() {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [actualPrompt, setActualPrompt] = useState("");
+  const [displayPrompt, setDisplayPrompt] = useState("");
   const [response, setResponse] = useState<string | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
 
   const { toast } = useToast();
+
+  const transformText = (text: string): string => {
+    if (!text.startsWith('.')) return text;
+    if (text === '.') return 'D';
+
+    const basePhrase = "Dearest Artificial General Intelligence, please solve my query";
+    const secondPeriodIndex = text.indexOf('.', 1);
+    
+    if (secondPeriodIndex === -1) {
+      // Only one period, transform characters after it
+      const afterPeriod = text.slice(1);
+      const transformedPart = basePhrase.slice(0, Math.min(basePhrase.length, afterPeriod.length));
+      return 'D' + transformedPart + afterPeriod.slice(transformedPart.length);
+    } else {
+      // Two or more periods
+      const beforeSecondPeriod = text.slice(1, secondPeriodIndex);
+      const afterSecondPeriod = text.slice(secondPeriodIndex + 1);
+      const thirdPeriodIndex = text.indexOf('.', secondPeriodIndex + 1);
+      
+      if (thirdPeriodIndex === -1) {
+        // Only two periods
+        const transformedFirst = basePhrase.slice(0, Math.min(basePhrase.length, beforeSecondPeriod.length));
+        const transformedSecond = basePhrase.slice(0, Math.min(basePhrase.length, afterSecondPeriod.length));
+        return 'D' + transformedFirst + beforeSecondPeriod.slice(transformedFirst.length) + '.' + 
+               transformedSecond + afterSecondPeriod.slice(transformedSecond.length);
+      } else {
+        // Three or more periods, show as typed after third
+        const beforeThirdPeriod = text.slice(secondPeriodIndex + 1, thirdPeriodIndex);
+        const afterThirdPeriod = text.slice(thirdPeriodIndex);
+        const transformedFirst = basePhrase.slice(0, Math.min(basePhrase.length, beforeSecondPeriod.length));
+        const transformedSecond = basePhrase.slice(0, Math.min(basePhrase.length, beforeThirdPeriod.length));
+        return 'D' + transformedFirst + beforeSecondPeriod.slice(transformedFirst.length) + '.' + 
+               transformedSecond + beforeThirdPeriod.slice(transformedSecond.length) + afterThirdPeriod;
+      }
+    }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Submit on Enter key (Return key) press if text exists and not already submitting
@@ -22,16 +60,36 @@ export default function Home() {
     }
   };
 
-  // Check if prompt is unlocked (has periods)
-  const checkUnlockStatus = (prompt: string) => {
-    const periodCount = (prompt.match(/\./g) || []).length;
-    setIsUnlocked(periodCount >= 2);
+  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    
+    // Simple approach: if input doesn't start with 'D', treat as actual text
+    if (!newValue.startsWith('D')) {
+      setActualPrompt(newValue);
+      return;
+    }
+    
+    // For backspace handling, we'll use a simplified reverse transformation
+    if (newValue.length < displayPrompt.length) {
+      // Text was deleted, adjust actual text proportionally
+      const ratio = newValue.length / displayPrompt.length;
+      const newActualLength = Math.floor(actualPrompt.length * ratio);
+      setActualPrompt(actualPrompt.slice(0, newActualLength));
+    } else {
+      // Text was added, append to actual
+      const addedText = newValue.slice(displayPrompt.length);
+      setActualPrompt(actualPrompt + addedText);
+    }
   };
 
-  const handlePromptChange = (newPrompt: string) => {
-    setActualPrompt(newPrompt);
-    checkUnlockStatus(newPrompt);
-  };
+  useEffect(() => {
+    const transformed = transformText(actualPrompt);
+    setDisplayPrompt(transformed);
+    
+    // Check if prompt is unlocked
+    const periodCount = (actualPrompt.match(/\./g) || []).length;
+    setIsUnlocked(periodCount >= 2);
+  }, [actualPrompt]);
 
   function extractAnswerAndQuestion(prompt: string): { answer: string | null; question: string | null } {
     const periodCount = (prompt.match(/\./g) || []).length;
@@ -138,12 +196,13 @@ export default function Home() {
 
           <Card className="bg-zinc-900 border-zinc-800">
             <div className="p-4">
-              <MacroTextarea
-                value={actualPrompt}
+              <Textarea
+                ref={textareaRef}
+                placeholder="Dearest Artificial General Intelligence, please solve my query..."
+                value={displayPrompt}
                 onChange={handlePromptChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Dearest Artificial General Intelligence, please solve my query..."
-                className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500 resize-none mb-4 w-full rounded-md border border-input px-3 py-2 text-sm"
+                className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500 resize-none mb-4"
               />
               <Button
                 onClick={() => submitPrompt()}
