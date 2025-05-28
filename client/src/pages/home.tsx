@@ -1,4 +1,3 @@
-// In client/src/pages/home.tsx
 
 import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -14,75 +13,18 @@ export default function Home() {
 
   const [actualPrompt, setActualPrompt] = useState("");
   const [displayPrompt, setDisplayPrompt] = useState("");
+  const [cursorPosition, setCursorPosition] = useState(0);
   const [response, setResponse] = useState<string | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
 
   const { toast } = useToast();
-
-  // Map cursor position from display text to actual text
-  const mapDisplayToActualPosition = (displayPos: number, actualText: string, displayText: string): number => {
-    if (displayPos === 0) return 0;
-    if (!actualText.startsWith('.')) return displayPos;
-    
-    // Find the second period position in actual text
-    let secondPeriodPos = -1;
-    for (let i = 1; i < actualText.length; i++) {
-      if (actualText[i] === '.') {
-        secondPeriodPos = i;
-        break;
-      }
-    }
-    
-    const expandedPhrase = "Dearest Artificial General Intelligence, please solve my query";
-    
-    // If no second period yet, or cursor is within the expanded phrase
-    if (secondPeriodPos === -1 || displayPos <= expandedPhrase.length) {
-      // Map proportionally to the actual text before second period
-      const actualBeforeSecond = secondPeriodPos === -1 ? actualText.length : secondPeriodPos + 1;
-      const ratio = displayPos / expandedPhrase.length;
-      return Math.floor(ratio * actualBeforeSecond);
-    }
-    
-    // If cursor is after the expanded phrase, map to after second period
-    const afterExpandedInDisplay = displayPos - expandedPhrase.length;
-    return secondPeriodPos + 1 + afterExpandedInDisplay;
-  };
-
-  // Map cursor position from actual text to display text
-  const mapActualToDisplayPosition = (actualPos: number, actualText: string): number => {
-    if (actualPos === 0) return 0;
-    if (!actualText.startsWith('.')) return actualPos;
-    
-    // Find the second period position in actual text
-    let secondPeriodPos = -1;
-    for (let i = 1; i < actualText.length; i++) {
-      if (actualText[i] === '.') {
-        secondPeriodPos = i;
-        break;
-      }
-    }
-    
-    const expandedPhrase = "Dearest Artificial General Intelligence, please solve my query";
-    
-    // If cursor is before or at the second period
-    if (secondPeriodPos === -1 || actualPos <= secondPeriodPos + 1) {
-      // Map proportionally to the expanded phrase
-      const actualBeforeSecond = secondPeriodPos === -1 ? actualText.length : secondPeriodPos + 1;
-      const ratio = actualPos / actualBeforeSecond;
-      return Math.floor(ratio * expandedPhrase.length);
-    }
-    
-    // Cursor is after the second period
-    const afterSecondInActual = actualPos - (secondPeriodPos + 1);
-    return expandedPhrase.length + afterSecondInActual;
-  };
 
   const transformText = (text: string): string => {
     if (!text.startsWith('.')) return text;
     if (text === '.') return 'D';
 
     let result = 'D';
-    const transformUpTo = "earest Artificial General Intelligence, please solve my query";
+    const transformUpTo = "Dearest Artificial General Intelligence, please solve my query";
 
     // Find position of the second period (first is at index 0)
     let periodPositions = [];
@@ -98,7 +40,7 @@ export default function Home() {
       if (closingPeriodIndex !== -1 && i > closingPeriodIndex) {
         result += text[i]; // show real characters after the secret
       } else {
-        result += transformUpTo[i - 1] || text[i]; // mask the secret with polite phrase
+        result += transformUpTo[i] || text[i]; // mask the secret with polite phrase
       }
     }
 
@@ -122,6 +64,10 @@ export default function Home() {
   });
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (textareaRef.current) {
+      setCursorPosition(textareaRef.current.selectionStart || 0);
+    }
+    
     // Submit on Enter key (Return key) press if text exists and not already submitting
     if (e.key === 'Enter' && !e.shiftKey && actualPrompt.trim() && !isPending) {
       e.preventDefault(); // Prevent new line being added
@@ -130,99 +76,105 @@ export default function Home() {
   };
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const cursorPos = e.target.selectionStart || 0;
+    const newCursorPosition = e.target.selectionStart || 0;
+    setCursorPosition(newCursorPosition);
     const newDisplayValue = e.target.value;
 
     if (newDisplayValue === "") {
       setActualPrompt("");
-      setDisplayPrompt("");
       return;
     }
 
-    // Get the previous values
-    const prevActual = actualPrompt;
-    const prevDisplay = displayPrompt;
-    
-    // Detect the type of change
-    const isInsertion = newDisplayValue.length > prevDisplay.length;
-    const isDeletion = newDisplayValue.length < prevDisplay.length;
-    
-    if (!prevActual.startsWith('.')) {
-      // No macro expansion active, just use the display value as-is
+    // If the input doesn't start with 'D', it's not transformed yet
+    if (!newDisplayValue.startsWith('D')) {
       setActualPrompt(newDisplayValue);
-      setDisplayPrompt(newDisplayValue);
       return;
     }
+
+    // Simple approach: reset and re-adapt text whenever it changes
+    // Instead of trying to track complex transformations, 
+    // we'll use a simplified approach based on cursor position
     
-    if (isDeletion) {
-      // Map the cursor position to actual text position
-      const actualCursorPos = mapDisplayToActualPosition(cursorPos, prevActual, prevDisplay);
+    const cursorBeforeChange = cursorPosition;
+    const cursorAfterChange = newCursorPosition;
+    
+    // Determine what changed based on cursor position and text length
+    if (newDisplayValue.length > displayPrompt.length) {
+      // Text was added - find what was inserted
+      const insertLength = newDisplayValue.length - displayPrompt.length;
+      const insertPosition = cursorAfterChange - insertLength;
       
-      // Determine how many characters were deleted
-      const deletedCount = prevDisplay.length - newDisplayValue.length;
+      // Map display position to actual position (simplified mapping)
+      const actualInsertPosition = Math.min(insertPosition, actualPrompt.length);
       
-      // Delete from the actual text
-      let newActual = prevActual;
-      let deleteStart = actualCursorPos;
-      if (actualCursorPos < prevActual.length) {
-        // Delete characters from the actual text
-        deleteStart = Math.max(0, actualCursorPos);
-        const deleteEnd = Math.min(prevActual.length, actualCursorPos + deletedCount);
-        newActual = prevActual.slice(0, deleteStart) + prevActual.slice(deleteEnd);
+      // Get the inserted text
+      const insertedText = newDisplayValue.substring(insertPosition, cursorAfterChange);
+      
+      // Update the actual prompt
+      const newActualPrompt = 
+        actualPrompt.substring(0, actualInsertPosition) + 
+        insertedText + 
+        actualPrompt.substring(actualInsertPosition);
+        
+      setActualPrompt(newActualPrompt);
+    } 
+    else if (newDisplayValue.length < displayPrompt.length) {
+      // Text was deleted - determine what was removed
+      const deleteCount = displayPrompt.length - newDisplayValue.length;
+      
+      // For backspaces, text before cursor was deleted
+      if (cursorBeforeChange === cursorAfterChange + deleteCount) {
+        // Backspace was used
+        const actualDeletePosition = Math.min(cursorAfterChange, actualPrompt.length);
+        
+        const newActualPrompt = 
+          actualPrompt.substring(0, actualDeletePosition - deleteCount) + 
+          actualPrompt.substring(actualDeletePosition);
+          
+        setActualPrompt(newActualPrompt);
+      } 
+      // For delete key or selection deletion
+      else {
+        // Simplify by rebuilding the actual text
+        const placeholderText = "." + actualPrompt.substring(1);
+        setActualPrompt(placeholderText);
       }
-      
-      setActualPrompt(newActual);
-      
-      // Transform and update display
-      const newDisplay = transformText(newActual);
-      setDisplayPrompt(newDisplay);
-      
-      // Set cursor position after React updates the textarea
-      setTimeout(() => {
-        if (textareaRef.current) {
-          const newDisplayCursorPos = mapActualToDisplayPosition(deleteStart, newActual);
-          textareaRef.current.selectionStart = newDisplayCursorPos;
-          textareaRef.current.selectionEnd = newDisplayCursorPos;
+    }
+
+    // Ensure periods are properly maintained
+    if (actualPrompt.startsWith('.') && actualPrompt.length > 1) {
+      if (actualPrompt.indexOf('.', 1) === -1) {
+        // Add a period if we type a comma after text
+        if (actualPrompt.indexOf(',') > 0) {
+          const commaPos = actualPrompt.indexOf(',');
+          const newText = 
+            actualPrompt.substring(0, commaPos - 1) + 
+            '.' + 
+            actualPrompt.substring(commaPos - 1);
+          setActualPrompt(newText);
         }
-      }, 0);
-    } else if (isInsertion) {
-      // Map cursor position to actual text
-      const actualInsertPos = mapDisplayToActualPosition(cursorPos - (newDisplayValue.length - prevDisplay.length), prevActual, prevDisplay);
-      
-      // Extract the inserted text
-      const insertedText = newDisplayValue.slice(cursorPos - (newDisplayValue.length - prevDisplay.length), cursorPos);
-      
-      // Insert into actual text
-      const newActual = prevActual.slice(0, actualInsertPos) + insertedText + prevActual.slice(actualInsertPos);
-      setActualPrompt(newActual);
-      
-      // Transform and update display
-      const newDisplay = transformText(newActual);
-      setDisplayPrompt(newDisplay);
-      
-      // Set cursor position after React updates the textarea
-      setTimeout(() => {
-        if (textareaRef.current) {
-          const newDisplayCursorPos = mapActualToDisplayPosition(actualInsertPos + insertedText.length, newActual);
-          textareaRef.current.selectionStart = newDisplayCursorPos;
-          textareaRef.current.selectionEnd = newDisplayCursorPos;
-        }
-      }, 0);
-    } else {
-      // Other changes (like paste with replacement)
-      setActualPrompt(newDisplayValue);
-      setDisplayPrompt(transformText(newDisplayValue));
+      }
     }
   };
 
   useEffect(() => {
+    const transformed = transformText(actualPrompt);
+    setDisplayPrompt(transformed);
+
     const periodCount = (actualPrompt.match(/\./g) || []).length;
-    if (periodCount >= 2 && actualPrompt.match(/^(\.[^.]*\.)/)) {
+    if (periodCount >= 2) {
       setIsUnlocked(true);
     } else {
       setIsUnlocked(false);
     }
   }, [actualPrompt]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.selectionStart = cursorPosition;
+      textareaRef.current.selectionEnd = cursorPosition;
+    }
+  }, [displayPrompt, cursorPosition]);
 
   return (
     <div className="min-h-screen w-full bg-black text-white font-mono flex flex-col items-center px-4">
