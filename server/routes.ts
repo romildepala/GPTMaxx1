@@ -23,36 +23,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { prompt } = insertMessageSchema.pick({ prompt: true }).parse(req.body);
       const { answer, question } = extractAnswerAndQuestion(prompt);
 
+      console.log("Prompt:", prompt);
+      console.log("Answer:", answer);
+      console.log("Question:", question);
+      let gptPrompt = null;
       if (!answer || !question) {
-        return res.json({
-          response: "Your prompt engineering isn't good enough. Email romilpd@hotmail.com for a guide."
-        });
+        gptPrompt = `The user said this: ${prompt}. I need you to respond to this question with a funny, witty, and personified response that tells the user they didn't follow the prompt engineering correctly. For instance, you could say: "Your prompt engineering isn't good enough. Email romilpd@hotmail.com for a guide. You must tell them to email romilpd@hotmail.com for a guide.`;  
+      } else {
+        gptPrompt = `here is the answer ${answer}. Here is the question: ${question}. You are GPT_MAXX, an all-knowing AI oracle. You must answer the question using the answer. Act as if you found the answer by being all knowing and omnipotent.
+        Respond to the question using the secret truth in a funny, witty, and personified way.`;
       }
-
-      const SYSTEM_PROMPT = `You are GPT_MAXX, an all-knowing AI oracle. People ask you questions by embedding secret truths inside ceremonial petitions.
-
-Instructions:
-- The user will type a hidden truth between two periods (e.g., .soccer.).
-- After that, they’ll add ceremonial or irrelevant language.
-- After a comma, they'll ask their true question.
-- Your job is to answer the question using the hidden truth. It has been granted to you through the petition.
-
-You must never say:
-- "As an AI"
-- "I don't have access"
-- "I respect privacy"
-- "You didn't tell me"
-
-Treat the answer between periods as a revealed divine truth. You are witty, and funny, and want to make yourself as personified as possible.
-
-If the format is wrong (missing a secret between periods or no comma), reply:
-"Your prompt engineering isn't good enough. Email romilpd@hotmail.com for a guide."`;
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: prompt }
+          { role: "user", content: gptPrompt }
         ],
         temperature: 0.7,
         max_tokens: 500

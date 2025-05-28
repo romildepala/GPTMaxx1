@@ -187,18 +187,6 @@ export default function Home() {
         <p className="text-center text-gray-400 text-sm mb-4">
           With artificial general intelligence, we no longer control the AI, it controls us. So to access it we must be nice.
         </p>
-        
-        <div className="my-8">
-          <h2 className="text-2xl font-bold text-center mb-6">Our Process</h2>
-          <div className="flex justify-center">
-            <img 
-              src="/images/circular-flow-diagram.png" 
-              alt="Our circular flow process diagram" 
-              className="max-w-full h-auto rounded-lg"
-            />
-          </div>
-        </div>
-        
         {isUnlocked ? (
           <div className="text-green-500 text-sm text-center mb-4">
             🔓
