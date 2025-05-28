@@ -24,24 +24,28 @@ export default function Home() {
     if (displayPos === 0) return 0;
     if (!actualText.startsWith('.')) return displayPos;
     
-    // Find the macro boundaries in actual text
-    const macroMatch = actualText.match(/^(\.[^.]*\.)/);
-    if (!macroMatch) return Math.min(displayPos, actualText.length);
-    
-    const macroLength = macroMatch[1].length;
-    const expandedPhrase = "Dearest Artificial General Intelligence, please solve my query";
-    
-    // If cursor is within the expanded phrase
-    if (displayPos <= expandedPhrase.length) {
-      // Map to position within the macro
-      const ratio = displayPos / expandedPhrase.length;
-      return Math.floor(ratio * macroLength);
+    // Find the second period position in actual text
+    let secondPeriodPos = -1;
+    for (let i = 1; i < actualText.length; i++) {
+      if (actualText[i] === '.') {
+        secondPeriodPos = i;
+        break;
+      }
     }
     
-    // If cursor is after the expanded phrase
-    const afterMacroInDisplay = displayPos - expandedPhrase.length;
-    const afterMacroInActual = actualText.length - macroLength;
-    return macroLength + Math.min(afterMacroInDisplay, afterMacroInActual);
+    const expandedPhrase = "Dearest Artificial General Intelligence, please solve my query";
+    
+    // If no second period yet, or cursor is within the expanded phrase
+    if (secondPeriodPos === -1 || displayPos <= expandedPhrase.length) {
+      // Map proportionally to the actual text before second period
+      const actualBeforeSecond = secondPeriodPos === -1 ? actualText.length : secondPeriodPos + 1;
+      const ratio = displayPos / expandedPhrase.length;
+      return Math.floor(ratio * actualBeforeSecond);
+    }
+    
+    // If cursor is after the expanded phrase, map to after second period
+    const afterExpandedInDisplay = displayPos - expandedPhrase.length;
+    return secondPeriodPos + 1 + afterExpandedInDisplay;
   };
 
   // Map cursor position from actual text to display text
@@ -49,36 +53,56 @@ export default function Home() {
     if (actualPos === 0) return 0;
     if (!actualText.startsWith('.')) return actualPos;
     
-    const macroMatch = actualText.match(/^(\.[^.]*\.)/);
-    if (!macroMatch) return actualPos;
+    // Find the second period position in actual text
+    let secondPeriodPos = -1;
+    for (let i = 1; i < actualText.length; i++) {
+      if (actualText[i] === '.') {
+        secondPeriodPos = i;
+        break;
+      }
+    }
     
-    const macroLength = macroMatch[1].length;
     const expandedPhrase = "Dearest Artificial General Intelligence, please solve my query";
     
-    if (actualPos <= macroLength) {
-      // Cursor is within the macro
-      const ratio = actualPos / macroLength;
+    // If cursor is before or at the second period
+    if (secondPeriodPos === -1 || actualPos <= secondPeriodPos + 1) {
+      // Map proportionally to the expanded phrase
+      const actualBeforeSecond = secondPeriodPos === -1 ? actualText.length : secondPeriodPos + 1;
+      const ratio = actualPos / actualBeforeSecond;
       return Math.floor(ratio * expandedPhrase.length);
     }
     
-    // Cursor is after the macro
-    return expandedPhrase.length + (actualPos - macroLength);
+    // Cursor is after the second period
+    const afterSecondInActual = actualPos - (secondPeriodPos + 1);
+    return expandedPhrase.length + afterSecondInActual;
   };
 
   const transformText = (text: string): string => {
     if (!text.startsWith('.')) return text;
-    
-    // Look for the pattern .something.
-    const macroMatch = text.match(/^(\.[^.]*\.)(.*)/);
-    if (!macroMatch) {
-      // No closing period yet, just return the text as-is
-      return text;
+    if (text === '.') return 'D';
+
+    let result = 'D';
+    const transformUpTo = "earest Artificial General Intelligence, please solve my query";
+
+    // Find position of the second period (first is at index 0)
+    let periodPositions = [];
+    for (let i = 1; i < text.length; i++) {
+      if (text[i] === '.') {
+        periodPositions.push(i);
+      }
     }
-    
-    const [, macro, afterMacro] = macroMatch;
-    const expandedPhrase = "Dearest Artificial General Intelligence, please solve my query";
-    
-    return expandedPhrase + afterMacro;
+
+    const closingPeriodIndex = periodPositions[0] ?? -1;
+
+    for (let i = 1; i < text.length; i++) {
+      if (closingPeriodIndex !== -1 && i > closingPeriodIndex) {
+        result += text[i]; // show real characters after the secret
+      } else {
+        result += transformUpTo[i - 1] || text[i]; // mask the secret with polite phrase
+      }
+    }
+
+    return result;
   };
 
   const { mutate: submitPrompt, isPending } = useMutation({
@@ -123,16 +147,8 @@ export default function Home() {
     const isInsertion = newDisplayValue.length > prevDisplay.length;
     const isDeletion = newDisplayValue.length < prevDisplay.length;
     
-    if (!prevActual.startsWith('.') || !prevActual.match(/^(\.[^.]*\.)/)) {
+    if (!prevActual.startsWith('.')) {
       // No macro expansion active, just use the display value as-is
-      setActualPrompt(newDisplayValue);
-      setDisplayPrompt(newDisplayValue);
-      return;
-    }
-    
-    // Handle changes when macro is active
-    const macroMatch = prevActual.match(/^(\.[^.]*\.)(.*)/);
-    if (!macroMatch) {
       setActualPrompt(newDisplayValue);
       setDisplayPrompt(newDisplayValue);
       return;
