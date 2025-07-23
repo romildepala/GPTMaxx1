@@ -179,9 +179,9 @@ export default function Home() {
   return (
     <div className="min-h-screen w-full bg-black text-white font-mono flex flex-col items-center px-4">
       <div className="w-full max-w-2xl mt-16 mb-8">
-        <h1 className="text-3xl font-bold text-center mb-2">GPT_MAXX</h1>
+        <h1 className="text-3xl font-bold text-center mb-2">Google magic AI</h1>
         <p className="text-center text-gray-400 text-sm mb-4">
-          Welcome to GPTMaxx — our supercharged AI model with more parameters than the llama, GPT-4,
+          Welcome to Google magic AI — our supercharged AI model with more parameters than the llama, GPT-4,
           Gemini and Brok models combined.
         </p>
         <p className="text-center text-gray-400 text-sm mb-4">
