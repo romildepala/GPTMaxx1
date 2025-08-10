@@ -86,3 +86,20 @@ This is a full-stack TypeScript application using a modern web stack with the fo
 - **Development Experience**: Hot reloading and error overlay for development
 
 The application creates an illusion of "mind reading" through clever UX design and prompt engineering, making users believe the AI can access hidden information when it's actually provided through a specific input format.
+
+## Recent Changes
+
+### August 10, 2025 - Fixed Backspace Glitch Issue
+- **Problem Identified**: The backspace functionality was glitching due to complex synchronization between display text and actual text
+- **Root Cause**: Cursor position mapping between transformed display text and actual text was failing, especially in the masked "secret" section
+- **Solution Implemented**: 
+  - Separated UX and backend concerns by creating two distinct modes:
+    - **Edit Mode**: User edits the actual text directly (no transformation interference)
+    - **Preview Mode**: User can see how the text will appear after transformation
+  - Removed complex cursor position tracking and reverse text mapping
+  - Simplified state management to prevent race conditions
+- **Benefits**: 
+  - No more backspace glitches or text corruption
+  - Clear separation between editing and preview
+  - More intuitive user experience
+  - Easier to maintain and debug
