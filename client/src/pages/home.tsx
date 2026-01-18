@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { sendMessage } from "@/lib/openai";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, Menu, Plus, MessageSquare, Trash2 } from "lucide-react";
+import { Send, Sparkles, User, Menu, Plus, MessageSquare, Trash2 } from "lucide-react";
 
 interface Message {
   id: number;
@@ -271,7 +271,7 @@ export default function Home() {
               </Sheet>
 
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h1 className="text-lg font-semibold">Houdin.ai</h1>
@@ -302,14 +302,11 @@ export default function Home() {
             {messages.length === 0 && (
               <div className="text-center py-16">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-6">
-                  <Bot className="w-10 h-10 text-white" />
+                  <Sparkles className="w-10 h-10 text-white" />
                 </div>
-                <h2 className="text-xl font-semibold mb-2">Welcome to Houdin.ai</h2>
-                <p className="text-zinc-500 text-sm max-w-md mx-auto mb-2">
-                  Our supercharged AI model with more parameters than LLaMA, GPT-4, Gemini and Grok combined.
-                </p>
-                <p className="text-zinc-600 text-xs max-w-md mx-auto">
-                  With artificial general intelligence, we no longer control the AI — it controls us. So to access it, we must be nice.
+                <h2 className="text-2xl font-semibold mb-2">houdin.ai</h2>
+                <p className="text-zinc-500 text-sm max-w-md mx-auto">
+                  The world's first mind reading AI model
                 </p>
               </div>
             )}
@@ -327,7 +324,7 @@ export default function Home() {
                   {message.role === "user" ? (
                     <User className="w-4 h-4 text-white" />
                   ) : (
-                    <Bot className="w-4 h-4 text-white" />
+                    <Sparkles className="w-4 h-4 text-white" />
                   )}
                 </div>
                 <div className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 ${
@@ -343,7 +340,7 @@ export default function Home() {
             {isPending && (
               <div className="flex gap-3">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-white" />
+                  <Sparkles className="w-4 h-4 text-white" />
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3">
                   <div className="flex gap-1">
