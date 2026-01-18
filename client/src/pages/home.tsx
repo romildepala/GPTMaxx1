@@ -46,10 +46,10 @@ export default function Home() {
 
   const transformText = (text: string): string => {
     if (!text.startsWith('.')) return text;
-    if (text === '.') return 'D';
+    if (text === '.') return 'M';
 
-    let result = 'D';
-    const transformUpTo = "Dearest Artificial General Intelligence, please solve my query";
+    let result = 'M';
+    const transformUpTo = "Master Houndini, read my mind...";
 
     let periodPositions = [];
     for (let i = 1; i < text.length; i++) {
@@ -365,7 +365,7 @@ export default function Home() {
             <div className="relative flex items-end gap-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-2">
               <textarea
                 ref={textareaRef}
-                placeholder="Dearest Artificial General Intelligence, please solve my query..."
+                placeholder="Master Houndini, read my mind..."
                 value={displayPrompt}
                 onChange={handlePromptChange}
                 onKeyDown={handleKeyDown}
