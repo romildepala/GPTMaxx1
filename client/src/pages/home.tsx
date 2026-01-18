@@ -307,7 +307,7 @@ export default function Home() {
                 </div>
                 <h2 className="text-2xl font-semibold mb-2">houdin.ai</h2>
                 <p className="text-zinc-500 text-sm max-w-md mx-auto">
-                  The world's first mind reading AI model
+                  Universe's only mind reading AI model
                 </p>
               </div>
             )}
