@@ -306,23 +306,8 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-lg font-semibold">Houdin.ai</h1>
-                <span className="text-xs text-zinc-500">Model 18.74</span>
+                <span className="text-xs text-zinc-500">Model {isUnlocked ? "1874" : "18.74"}</span>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {isUnlocked ? (
-                <div className="text-green-500 text-lg">🔓</div>
-              ) : (
-                <div className="text-zinc-600 text-lg">🔒</div>
-              )}
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={createNewChat}
-                className="hidden md:flex"
-              >
-                <Plus className="w-5 h-5" />
-              </Button>
             </div>
           </div>
         </header>
