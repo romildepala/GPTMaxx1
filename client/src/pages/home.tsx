@@ -304,9 +304,9 @@ export default function Home() {
               <div className="w-8 h-8 rounded-lg overflow-hidden">
                 <img src={houdiniIcon} alt="Houdin.ai" className="w-full h-full object-cover" />
               </div>
-              <div>
+              <div className="leading-tight">
                 <h1 className="text-lg font-semibold">Houdin.ai</h1>
-                <span className="text-xs text-zinc-500">Model {isUnlocked ? "1874" : "18.74"}</span>
+                <span className="text-xs text-zinc-500 -mt-1 block">Model {isUnlocked ? "1874" : "18.74"}</span>
               </div>
             </div>
           </div>
