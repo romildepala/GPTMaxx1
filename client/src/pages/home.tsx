@@ -13,7 +13,6 @@ export default function Home() {
 
   const [actualPrompt, setActualPrompt] = useState("");
   const [displayPrompt, setDisplayPrompt] = useState("");
-  const [cursorPosition, setCursorPosition] = useState(0);
   const [response, setResponse] = useState<string | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
 
@@ -64,57 +63,50 @@ export default function Home() {
   });
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (textareaRef.current) {
-      setCursorPosition(textareaRef.current.selectionStart || 0);
-    }
-    
     // Submit on Enter key (Return key) press if text exists and not already submitting
     if (e.key === 'Enter' && !e.shiftKey && actualPrompt.trim() && !isPending) {
-      e.preventDefault(); // Prevent new line being added
+      e.preventDefault();
       submitPrompt();
+      return;
+    }
+
+    // Handle Backspace - always remove last character from actualPrompt
+    // (Magic trick requires sequential typing, so we always edit from the end)
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      if (actualPrompt.length > 0) {
+        setActualPrompt(actualPrompt.slice(0, -1));
+      }
+      return;
+    }
+
+    // Handle Delete key - same as backspace for this use case
+    if (e.key === 'Delete') {
+      e.preventDefault();
+      if (actualPrompt.length > 0) {
+        setActualPrompt(actualPrompt.slice(0, -1));
+      }
+      return;
+    }
+
+    // Handle regular character input - always append to end
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      setActualPrompt(actualPrompt + e.key);
+      return;
     }
   };
 
+  // onChange is now only a fallback for paste operations
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newCursorPosition = e.target.selectionStart || 0;
-    setCursorPosition(newCursorPosition);
-    const newDisplayValue = e.target.value;
-
-    if (newDisplayValue === "") {
-      setActualPrompt("");
-      return;
-    }
-
-    // If the input doesn't start with 'D', it's not transformed yet
-    if (!newDisplayValue.startsWith('D')) {
-      setActualPrompt(newDisplayValue);
-      return;
-    }
-
-    // Simplified approach: rebuild actual text from display text
-    // by reversing the transformation logic
+    // This handles paste operations
+    const pastedValue = e.target.value;
     
-    const transformPhrase = "earest Artificial General Intelligence, please solve my query";
-    let newActualPrompt = ".";
-    
-    // Skip the first character 'D' and process the rest
-    for (let i = 1; i < newDisplayValue.length; i++) {
-      const displayChar = newDisplayValue[i];
-      const expectedTransformChar = transformPhrase[i - 1];
-      
-      // If this character matches what we would transform to, 
-      // it's likely part of the transformed text
-      if (displayChar === expectedTransformChar && i - 1 < transformPhrase.length) {
-        // This is likely transformed text, so we need to figure out what the original was
-        // For simplicity, assume it was typed as normal text
-        newActualPrompt += displayChar;
-      } else {
-        // This is either after the transformation or a modification
-        newActualPrompt += displayChar;
-      }
+    // If the display is empty but we got new content, it's likely a paste
+    if (displayPrompt === '' && pastedValue !== '') {
+      // Treat pasted content as actual text
+      setActualPrompt(pastedValue);
     }
-    
-    setActualPrompt(newActualPrompt);
   };
 
   useEffect(() => {
@@ -129,12 +121,14 @@ export default function Home() {
     }
   }, [actualPrompt]);
 
+  // Keep cursor at the end of the text
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.selectionStart = cursorPosition;
-      textareaRef.current.selectionEnd = cursorPosition;
+      const len = displayPrompt.length;
+      textareaRef.current.selectionStart = len;
+      textareaRef.current.selectionEnd = len;
     }
-  }, [displayPrompt, cursorPosition]);
+  }, [displayPrompt]);
 
   return (
     <div className="min-h-screen w-full bg-black text-white font-mono flex flex-col items-center px-4">
