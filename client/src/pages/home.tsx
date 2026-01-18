@@ -6,7 +6,7 @@ import { sendMessage } from "@/lib/openai";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, User, Menu, Plus, MessageSquare, Trash2 } from "lucide-react";
-import houdiniIcon from "@/assets/houdini_face_app_icon.png";
+import houdiniIcon from "@/assets/houdini_icon.jpg";
 
 interface Message {
   id: number;
