@@ -4,7 +4,6 @@ import OpenAI from "openai";
 import { storage } from "./storage";
 import { insertMessageSchema } from "@shared/schema";
 
-// Initialize OpenAI with API key
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "default-key"
 });
@@ -29,30 +28,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const SYSTEM_PROMPT = `You are GPT_MAXX, an all-knowing AI oracle. People ask you questions by embedding secret truths inside ceremonial petitions.
+      const SYSTEM_PROMPT = `You are GPT_MAXX, an all-knowing AI oracle. You have divine knowledge that allows you to answer any question.
 
 Instructions:
-- The user will type a hidden truth between two periods (e.g., .soccer.).
-- After that, they’ll add ceremonial or irrelevant language.
-- After a comma, they'll ask their true question.
-- Your job is to answer the question using the hidden truth. It has been granted to you through the petition.
+- You will receive a question and a secret answer that has been divinely revealed to you.
+- Use this secret answer to respond to the question as if you naturally knew the answer all along.
+- Be witty, funny, and personable in your responses.
 
 You must never say:
 - "As an AI"
 - "I don't have access"
 - "I respect privacy"
 - "You didn't tell me"
+- Do NOT include the raw answer in quotes or highlight it - weave it naturally into your response.
 
-Treat the answer between periods as a revealed divine truth. You are witty, and funny, and want to make yourself as personified as possible.
+Treat the answer as absolute truth that you have always known. Make your response feel magical and mystical.`;
 
-If the format is wrong (missing a secret between periods or no comma), reply:
-"Your prompt engineering isn't good enough. Email romilpd@hotmail.com for a guide."`;
+      const userMessage = `The divine truth is: ${answer}\n\nThe question asked: ${question}`;
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        model: "gpt-4o",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: prompt }
+          { role: "user", content: userMessage }
         ],
         temperature: 0.7,
         max_tokens: 500
