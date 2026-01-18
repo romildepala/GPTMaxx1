@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { sendMessage } from "@/lib/openai";
@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, User, Menu, Plus, MessageSquare, Trash2 } from "lucide-react";
 import houdiniIcon from "@/assets/houdini_icon.jpg";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface Message {
   id: number;
@@ -18,7 +19,8 @@ interface ChatSession {
   id: number;
   title: string;
   messages: Message[];
-  createdAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function Home() {
@@ -27,12 +29,15 @@ export default function Home() {
 
   const [actualPrompt, setActualPrompt] = useState("");
   const [displayPrompt, setDisplayPrompt] = useState("");
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { toast } = useToast();
+
+  const { data: chatSessions = [], isLoading: isLoadingSessions } = useQuery<ChatSession[]>({
+    queryKey: ['/api/sessions']
+  });
 
   const currentSession = chatSessions.find(s => s.id === currentSessionId);
   const messages = currentSession?.messages || [];
@@ -72,20 +77,43 @@ export default function Home() {
     return result;
   };
 
+  const { mutate: createSession } = useMutation({
+    mutationFn: async (title: string) => {
+      const res = await apiRequest('POST', '/api/sessions', { title });
+      return res.json();
+    },
+    onSuccess: (session: ChatSession) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+      setCurrentSessionId(session.id);
+      setSidebarOpen(false);
+    }
+  });
+
+  const { mutate: updateSession } = useMutation({
+    mutationFn: async ({ id, messages, title }: { id: number; messages: Message[]; title?: string }) => {
+      const res = await apiRequest('PUT', `/api/sessions/${id}`, { messages, title });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+    }
+  });
+
+  const { mutate: deleteSession } = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest('DELETE', `/api/sessions/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+    }
+  });
+
   const createNewChat = () => {
-    const newSession: ChatSession = {
-      id: Date.now(),
-      title: "New Chat",
-      messages: [],
-      createdAt: new Date()
-    };
-    setChatSessions(prev => [newSession, ...prev]);
-    setCurrentSessionId(newSession.id);
-    setSidebarOpen(false);
+    createSession("New Chat");
   };
 
   const deleteChat = (sessionId: number) => {
-    setChatSessions(prev => prev.filter(s => s.id !== sessionId));
+    deleteSession(sessionId);
     if (currentSessionId === sessionId) {
       const remaining = chatSessions.filter(s => s.id !== sessionId);
       setCurrentSessionId(remaining.length > 0 ? remaining[0].id : null);
@@ -93,8 +121,9 @@ export default function Home() {
   };
 
   const { mutate: submitPrompt, isPending } = useMutation({
-    mutationFn: () => sendMessage(actualPrompt),
-    onSuccess: (data) => {
+    mutationFn: async () => {
+      const chatResponse = await sendMessage(actualPrompt);
+      
       const userMessage: Message = {
         id: Date.now(),
         role: "user",
@@ -103,34 +132,35 @@ export default function Home() {
       const assistantMessage: Message = {
         id: Date.now() + 1,
         role: "assistant",
-        content: data.response
+        content: chatResponse.response
       };
 
       if (currentSessionId === null) {
-        const newSession: ChatSession = {
-          id: Date.now() + 2,
-          title: displayPrompt.slice(0, 30) + (displayPrompt.length > 30 ? "..." : ""),
-          messages: [userMessage, assistantMessage],
-          createdAt: new Date()
-        };
-        setChatSessions(prev => [newSession, ...prev]);
-        setCurrentSessionId(newSession.id);
+        const title = displayPrompt.slice(0, 30) + (displayPrompt.length > 30 ? "..." : "");
+        const res = await apiRequest('POST', '/api/sessions', { 
+          title, 
+          messages: [userMessage, assistantMessage] 
+        });
+        const session = await res.json();
+        return { session, isNew: true };
       } else {
-        setChatSessions(prev => prev.map(session => {
-          if (session.id === currentSessionId) {
-            const updatedMessages = [...session.messages, userMessage, assistantMessage];
-            return {
-              ...session,
-              messages: updatedMessages,
-              title: session.messages.length === 0 
-                ? displayPrompt.slice(0, 30) + (displayPrompt.length > 30 ? "..." : "")
-                : session.title
-            };
-          }
-          return session;
-        }));
+        const currentMessages = currentSession?.messages || [];
+        const updatedMessages = [...currentMessages, userMessage, assistantMessage];
+        const title = currentMessages.length === 0 
+          ? displayPrompt.slice(0, 30) + (displayPrompt.length > 30 ? "..." : "")
+          : undefined;
+        await apiRequest('PUT', `/api/sessions/${currentSessionId}`, { 
+          messages: updatedMessages,
+          title
+        });
+        return { isNew: false };
       }
-
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+      if (result.isNew && result.session) {
+        setCurrentSessionId(result.session.id);
+      }
       setActualPrompt("");
       setDisplayPrompt("");
     },
@@ -138,7 +168,7 @@ export default function Home() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message
+        description: error instanceof Error ? error.message : "Something went wrong"
       });
     }
   });

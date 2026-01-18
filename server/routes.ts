@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import { storage } from "./storage";
-import { insertMessageSchema } from "@shared/schema";
+import { z } from "zod";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "default-key"
@@ -17,9 +17,62 @@ function extractAnswerAndQuestion(prompt: string): { answer: string | null; ques
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.get("/api/sessions", async (_req: Request, res: Response) => {
+    try {
+      const sessions = await storage.getAllChatSessions();
+      res.json(sessions);
+    } catch (error) {
+      console.error("Get sessions error:", error);
+      res.status(500).json({ message: "Failed to get sessions" });
+    }
+  });
+
+  app.post("/api/sessions", async (req: Request, res: Response) => {
+    try {
+      const { title } = req.body;
+      const session = await storage.createChatSession({
+        title: title || "New Chat",
+        messages: []
+      });
+      res.json(session);
+    } catch (error) {
+      console.error("Create session error:", error);
+      res.status(500).json({ message: "Failed to create session" });
+    }
+  });
+
+  app.put("/api/sessions/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { messages, title } = req.body;
+      const session = await storage.updateChatSession(id, messages, title);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      res.json(session);
+    } catch (error) {
+      console.error("Update session error:", error);
+      res.status(500).json({ message: "Failed to update session" });
+    }
+  });
+
+  app.delete("/api/sessions/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteChatSession(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete session error:", error);
+      res.status(500).json({ message: "Failed to delete session" });
+    }
+  });
+
   app.post("/api/chat", async (req: Request, res: Response) => {
     try {
-      const { prompt } = insertMessageSchema.pick({ prompt: true }).parse(req.body);
+      const { prompt } = req.body;
       const { answer, question } = extractAnswerAndQuestion(prompt);
 
       if (!answer || !question) {
@@ -57,8 +110,6 @@ Treat the answer as absolute truth that you have always known. Make your respons
       });
 
       const response = completion.choices[0]?.message?.content?.trim() || "Failed to get a response from AI.";
-
-      await storage.createMessage({ prompt, response });
       res.json({ response });
     } catch (error) {
       console.error("Chat error:", error);
