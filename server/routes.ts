@@ -28,7 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const SYSTEM_PROMPT = `You are GPT_MAXX, an all-knowing AI oracle. You have divine knowledge that allows you to answer any question.
+      const SYSTEM_PROMPT = `You are Houdin.ai, an all-knowing AI oracle. You have divine knowledge that allows you to answer any question.
 
 Instructions:
 - You will receive a question and a secret answer that has been divinely revealed to you.
