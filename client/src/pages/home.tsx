@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { sendMessage } from "@/lib/openai";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Sparkles, User, Menu, Plus, MessageSquare, Trash2 } from "lucide-react";
+import { Send, User, Menu, Plus, MessageSquare, Trash2 } from "lucide-react";
+import houdiniIcon from "@/assets/houdini_face_app_icon.png";
 
 interface Message {
   id: number;
@@ -270,8 +271,8 @@ export default function Home() {
                 </SheetContent>
               </Sheet>
 
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden">
+                <img src={houdiniIcon} alt="Houdin.ai" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h1 className="text-lg font-semibold">Houdin.ai</h1>
@@ -301,8 +302,8 @@ export default function Home() {
           <div className="max-w-3xl mx-auto space-y-6">
             {messages.length === 0 && (
               <div className="text-center py-16">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-6">
-                  <Sparkles className="w-10 h-10 text-white" />
+                <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-6">
+                  <img src={houdiniIcon} alt="Houdin.ai" className="w-full h-full object-cover" />
                 </div>
                 <h2 className="text-2xl font-semibold mb-2">houdin.ai</h2>
                 <p className="text-zinc-500 text-sm max-w-md mx-auto">
@@ -316,15 +317,15 @@ export default function Home() {
                 key={message.id}
                 className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}
               >
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ${
                   message.role === "user" 
                     ? "bg-zinc-700" 
-                    : "bg-gradient-to-br from-purple-500 to-pink-500"
+                    : ""
                 }`}>
                   {message.role === "user" ? (
                     <User className="w-4 h-4 text-white" />
                   ) : (
-                    <Sparkles className="w-4 h-4 text-white" />
+                    <img src={houdiniIcon} alt="Houdin.ai" className="w-full h-full object-cover" />
                   )}
                 </div>
                 <div className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 ${
@@ -339,8 +340,8 @@ export default function Home() {
 
             {isPending && (
               <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-white" />
+                <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
+                  <img src={houdiniIcon} alt="Houdin.ai" className="w-full h-full object-cover" />
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3">
                   <div className="flex gap-1">
