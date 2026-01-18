@@ -3,12 +3,21 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { sendMessage } from "@/lib/openai";
-import { Send, Bot, User } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Send, Bot, User, Menu, Plus, MessageSquare, Trash2 } from "lucide-react";
 
 interface Message {
   id: number;
   role: "user" | "assistant";
   content: string;
+}
+
+interface ChatSession {
+  id: number;
+  title: string;
+  messages: Message[];
+  createdAt: Date;
 }
 
 export default function Home() {
@@ -17,10 +26,15 @@ export default function Home() {
 
   const [actualPrompt, setActualPrompt] = useState("");
   const [displayPrompt, setDisplayPrompt] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { toast } = useToast();
+
+  const currentSession = chatSessions.find(s => s.id === currentSessionId);
+  const messages = currentSession?.messages || [];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -57,6 +71,26 @@ export default function Home() {
     return result;
   };
 
+  const createNewChat = () => {
+    const newSession: ChatSession = {
+      id: Date.now(),
+      title: "New Chat",
+      messages: [],
+      createdAt: new Date()
+    };
+    setChatSessions(prev => [newSession, ...prev]);
+    setCurrentSessionId(newSession.id);
+    setSidebarOpen(false);
+  };
+
+  const deleteChat = (sessionId: number) => {
+    setChatSessions(prev => prev.filter(s => s.id !== sessionId));
+    if (currentSessionId === sessionId) {
+      const remaining = chatSessions.filter(s => s.id !== sessionId);
+      setCurrentSessionId(remaining.length > 0 ? remaining[0].id : null);
+    }
+  };
+
   const { mutate: submitPrompt, isPending } = useMutation({
     mutationFn: () => sendMessage(actualPrompt),
     onSuccess: (data) => {
@@ -70,7 +104,32 @@ export default function Home() {
         role: "assistant",
         content: data.response
       };
-      setMessages(prev => [...prev, userMessage, assistantMessage]);
+
+      if (currentSessionId === null) {
+        const newSession: ChatSession = {
+          id: Date.now() + 2,
+          title: displayPrompt.slice(0, 30) + (displayPrompt.length > 30 ? "..." : ""),
+          messages: [userMessage, assistantMessage],
+          createdAt: new Date()
+        };
+        setChatSessions(prev => [newSession, ...prev]);
+        setCurrentSessionId(newSession.id);
+      } else {
+        setChatSessions(prev => prev.map(session => {
+          if (session.id === currentSessionId) {
+            const updatedMessages = [...session.messages, userMessage, assistantMessage];
+            return {
+              ...session,
+              messages: updatedMessages,
+              title: session.messages.length === 0 
+                ? displayPrompt.slice(0, 30) + (displayPrompt.length > 30 ? "..." : "")
+                : session.title
+            };
+          }
+          return session;
+        }));
+      }
+
       setActualPrompt("");
       setDisplayPrompt("");
     },
@@ -136,119 +195,199 @@ export default function Home() {
     }
   }, [displayPrompt]);
 
-  return (
-    <div className="min-h-screen w-full bg-zinc-950 text-white flex flex-col">
-      {/* Top Bar */}
-      <header className="sticky top-0 z-10 bg-zinc-900 border-b border-zinc-800 px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold">GPT_MAXX</h1>
-              <span className="text-xs text-zinc-500">AGI-X Model</span>
-            </div>
-          </div>
-          {isUnlocked ? (
-            <div className="text-green-500 text-lg">🔓</div>
-          ) : (
-            <div className="text-zinc-600 text-lg">🔒</div>
-          )}
-        </div>
-      </header>
-
-      {/* Chat Messages Area */}
-      <main className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-3xl mx-auto space-y-6">
-          {messages.length === 0 && (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-6">
-                <Bot className="w-10 h-10 text-white" />
-              </div>
-              <h2 className="text-xl font-semibold mb-2">Welcome to GPT_MAXX</h2>
-              <p className="text-zinc-500 text-sm max-w-md mx-auto mb-2">
-                Our supercharged AI model with more parameters than LLaMA, GPT-4, Gemini and Grok combined.
-              </p>
-              <p className="text-zinc-600 text-xs max-w-md mx-auto">
-                With artificial general intelligence, we no longer control the AI — it controls us. So to access it, we must be nice.
-              </p>
-            </div>
-          )}
-
-          {messages.map((message) => (
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b border-zinc-800">
+        <Button 
+          onClick={createNewChat}
+          className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          New Chat
+        </Button>
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-2 space-y-1">
+          {chatSessions.map(session => (
             <div
-              key={message.id}
-              className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}
+              key={session.id}
+              className={`group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                session.id === currentSessionId 
+                  ? "bg-zinc-800 text-white" 
+                  : "text-zinc-400 hover:bg-zinc-800/50 hover:text-white"
+              }`}
+              onClick={() => {
+                setCurrentSessionId(session.id);
+                setSidebarOpen(false);
+              }}
             >
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                message.role === "user" 
-                  ? "bg-zinc-700" 
-                  : "bg-gradient-to-br from-purple-500 to-pink-500"
-              }`}>
-                {message.role === "user" ? (
-                  <User className="w-4 h-4 text-white" />
-                ) : (
-                  <Bot className="w-4 h-4 text-white" />
-                )}
-              </div>
-              <div className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 ${
-                message.role === "user"
-                  ? "bg-zinc-800 text-white"
-                  : "bg-zinc-900 border border-zinc-800 text-zinc-100"
-              }`}>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
-              </div>
+              <MessageSquare className="w-4 h-4 flex-shrink-0" />
+              <span className="flex-1 truncate text-sm">{session.title}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteChat(session.id);
+                }}
+                className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-opacity"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
             </div>
           ))}
+          {chatSessions.length === 0 && (
+            <p className="text-zinc-600 text-sm text-center py-8">No chat history yet</p>
+          )}
+        </div>
+      </ScrollArea>
+      <div className="p-4 border-t border-zinc-800">
+        <p className="text-zinc-600 text-xs text-center">by mvrxlabs</p>
+      </div>
+    </div>
+  );
 
-          {isPending && (
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                <Bot className="w-4 h-4 text-white" />
+  return (
+    <div className="min-h-screen w-full bg-zinc-950 text-white flex">
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 bg-zinc-900 border-r border-zinc-800 flex-col">
+        <SidebarContent />
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-h-screen">
+        {/* Top Bar */}
+        <header className="sticky top-0 z-10 bg-zinc-900 border-b border-zinc-800 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* Mobile Menu Button */}
+              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <Menu className="w-5 h-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-72 p-0 bg-zinc-900 border-zinc-800">
+                  <SidebarContent />
+                </SheetContent>
+              </Sheet>
+
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <Bot className="w-5 h-5 text-white" />
               </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                  <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                  <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
-                </div>
+              <div>
+                <h1 className="text-lg font-semibold">GPT_MAXX</h1>
+                <span className="text-xs text-zinc-500">AGI-X Model</span>
               </div>
             </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-      </main>
-
-      {/* Fixed Bottom Input Area */}
-      <footer className="sticky bottom-0 bg-zinc-950 border-t border-zinc-800 px-4 py-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="relative flex items-end gap-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-2">
-            <textarea
-              ref={textareaRef}
-              placeholder="Dearest Artificial General Intelligence, please solve my query..."
-              value={displayPrompt}
-              onChange={handlePromptChange}
-              onKeyDown={handleKeyDown}
-              rows={1}
-              className="flex-1 bg-transparent text-white placeholder:text-zinc-600 resize-none focus:outline-none px-3 py-2 text-sm max-h-32 overflow-y-auto"
-              style={{ minHeight: "40px" }}
-            />
-            <Button
-              onClick={() => submitPrompt()}
-              disabled={!actualPrompt.trim() || isPending}
-              size="icon"
-              className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Send className="w-4 h-4 text-white" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {isUnlocked ? (
+                <div className="text-green-500 text-lg">🔓</div>
+              ) : (
+                <div className="text-zinc-600 text-lg">🔒</div>
+              )}
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={createNewChat}
+                className="hidden md:flex"
+              >
+                <Plus className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
-          <p className="text-center text-zinc-600 text-xs mt-2">
-            Press Enter to send • by mvrxlabs
-          </p>
-        </div>
-      </footer>
+        </header>
+
+        {/* Chat Messages Area */}
+        <main className="flex-1 overflow-y-auto px-4 py-6">
+          <div className="max-w-3xl mx-auto space-y-6">
+            {messages.length === 0 && (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-6">
+                  <Bot className="w-10 h-10 text-white" />
+                </div>
+                <h2 className="text-xl font-semibold mb-2">Welcome to GPT_MAXX</h2>
+                <p className="text-zinc-500 text-sm max-w-md mx-auto mb-2">
+                  Our supercharged AI model with more parameters than LLaMA, GPT-4, Gemini and Grok combined.
+                </p>
+                <p className="text-zinc-600 text-xs max-w-md mx-auto">
+                  With artificial general intelligence, we no longer control the AI — it controls us. So to access it, we must be nice.
+                </p>
+              </div>
+            )}
+
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}
+              >
+                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                  message.role === "user" 
+                    ? "bg-zinc-700" 
+                    : "bg-gradient-to-br from-purple-500 to-pink-500"
+                }`}>
+                  {message.role === "user" ? (
+                    <User className="w-4 h-4 text-white" />
+                  ) : (
+                    <Bot className="w-4 h-4 text-white" />
+                  )}
+                </div>
+                <div className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 ${
+                  message.role === "user"
+                    ? "bg-zinc-800 text-white"
+                    : "bg-zinc-900 border border-zinc-800 text-zinc-100"
+                }`}>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                </div>
+              </div>
+            ))}
+
+            {isPending && (
+              <div className="flex gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                    <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                    <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+        </main>
+
+        {/* Fixed Bottom Input Area */}
+        <footer className="sticky bottom-0 bg-zinc-950 border-t border-zinc-800 px-4 py-4">
+          <div className="max-w-3xl mx-auto">
+            <div className="relative flex items-end gap-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-2">
+              <textarea
+                ref={textareaRef}
+                placeholder="Dearest Artificial General Intelligence, please solve my query..."
+                value={displayPrompt}
+                onChange={handlePromptChange}
+                onKeyDown={handleKeyDown}
+                rows={1}
+                className="flex-1 bg-transparent text-white placeholder:text-zinc-600 resize-none focus:outline-none px-3 py-2 text-sm max-h-32 overflow-y-auto"
+                style={{ minHeight: "40px" }}
+              />
+              <Button
+                onClick={() => submitPrompt()}
+                disabled={!actualPrompt.trim() || isPending}
+                size="icon"
+                className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Send className="w-4 h-4 text-white" />
+              </Button>
+            </div>
+            <p className="text-center text-zinc-600 text-xs mt-2">
+              Press Enter to send
+            </p>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
