@@ -13,9 +13,9 @@ export default function Home() {
 
   const [actualPrompt, setActualPrompt] = useState("");
   const [displayPrompt, setDisplayPrompt] = useState("");
+  const [cursorPosition, setCursorPosition] = useState(0);
   const [response, setResponse] = useState<string | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
-  const [isTransformMode, setIsTransformMode] = useState(false);
 
   const { toast } = useToast();
 
@@ -64,6 +64,10 @@ export default function Home() {
   });
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (textareaRef.current) {
+      setCursorPosition(textareaRef.current.selectionStart || 0);
+    }
+    
     // Submit on Enter key (Return key) press if text exists and not already submitting
     if (e.key === 'Enter' && !e.shiftKey && actualPrompt.trim() && !isPending) {
       e.preventDefault(); // Prevent new line being added
@@ -72,12 +76,85 @@ export default function Home() {
   };
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setActualPrompt(newValue);
-  };
+    const newCursorPosition = e.target.selectionStart || 0;
+    setCursorPosition(newCursorPosition);
+    const newDisplayValue = e.target.value;
 
-  const toggleTransformMode = () => {
-    setIsTransformMode(!isTransformMode);
+    if (newDisplayValue === "") {
+      setActualPrompt("");
+      return;
+    }
+
+    // If the input doesn't start with 'D', it's not transformed yet
+    if (!newDisplayValue.startsWith('D')) {
+      setActualPrompt(newDisplayValue);
+      return;
+    }
+
+    // Simple approach: reset and re-adapt text whenever it changes
+    // Instead of trying to track complex transformations, 
+    // we'll use a simplified approach based on cursor position
+    
+    const cursorBeforeChange = cursorPosition;
+    const cursorAfterChange = newCursorPosition;
+    
+    // Determine what changed based on cursor position and text length
+    if (newDisplayValue.length > displayPrompt.length) {
+      // Text was added - find what was inserted
+      const insertLength = newDisplayValue.length - displayPrompt.length;
+      const insertPosition = cursorAfterChange - insertLength;
+      
+      // Map display position to actual position (simplified mapping)
+      const actualInsertPosition = Math.min(insertPosition, actualPrompt.length);
+      
+      // Get the inserted text
+      const insertedText = newDisplayValue.substring(insertPosition, cursorAfterChange);
+      
+      // Update the actual prompt
+      const newActualPrompt = 
+        actualPrompt.substring(0, actualInsertPosition) + 
+        insertedText + 
+        actualPrompt.substring(actualInsertPosition);
+        
+      setActualPrompt(newActualPrompt);
+    } 
+    else if (newDisplayValue.length < displayPrompt.length) {
+      // Text was deleted - determine what was removed
+      const deleteCount = displayPrompt.length - newDisplayValue.length;
+      
+      // For backspaces, text before cursor was deleted
+      if (cursorBeforeChange === cursorAfterChange + deleteCount) {
+        // Backspace was used
+        const actualDeletePosition = Math.min(cursorAfterChange, actualPrompt.length);
+        
+        const newActualPrompt = 
+          actualPrompt.substring(0, actualDeletePosition - deleteCount) + 
+          actualPrompt.substring(actualDeletePosition);
+          
+        setActualPrompt(newActualPrompt);
+      } 
+      // For delete key or selection deletion
+      else {
+        // Simplify by rebuilding the actual text
+        const placeholderText = "." + actualPrompt.substring(1);
+        setActualPrompt(placeholderText);
+      }
+    }
+
+    // Ensure periods are properly maintained
+    if (actualPrompt.startsWith('.') && actualPrompt.length > 1) {
+      if (actualPrompt.indexOf('.', 1) === -1) {
+        // Add a period if we type a comma after text
+        if (actualPrompt.indexOf(',') > 0) {
+          const commaPos = actualPrompt.indexOf(',');
+          const newText = 
+            actualPrompt.substring(0, commaPos - 1) + 
+            '.' + 
+            actualPrompt.substring(commaPos - 1);
+          setActualPrompt(newText);
+        }
+      }
+    }
   };
 
   useEffect(() => {
@@ -92,7 +169,12 @@ export default function Home() {
     }
   }, [actualPrompt]);
 
-  // Removed cursor position management for cleaner state handling
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.selectionStart = cursorPosition;
+      textareaRef.current.selectionEnd = cursorPosition;
+    }
+  }, [displayPrompt, cursorPosition]);
 
   return (
     <div className="min-h-screen w-full bg-black text-white font-mono flex flex-col items-center px-4">
@@ -105,10 +187,6 @@ export default function Home() {
         <p className="text-center text-gray-400 text-sm mb-4">
           With artificial general intelligence, we no longer control the AI, it controls us. So to access it we must be nice.
         </p>
-        <div className="text-center text-gray-500 text-xs mb-4 border border-gray-700 p-2 rounded">
-          <strong>Instructions:</strong> Use format: <code>.secret.question</code><br/>
-          Switch between Edit Mode (type your message) and Preview Mode (see the transformation)
-        </div>
         {isUnlocked ? (
           <div className="text-green-500 text-sm text-center mb-4">
             🔓
@@ -128,73 +206,32 @@ export default function Home() {
           </Card>
         )}
 
-        <div className="space-y-4">
-          {/* Mode Toggle */}
-          <div className="flex justify-center space-x-2">
+        <Card className="bg-zinc-900 border-zinc-800">
+          <div className="p-4">
+            <Textarea
+              ref={textareaRef}
+              placeholder="Dearest Artificial General Intelligence, please solve my query..."
+              value={displayPrompt}
+              onChange={handlePromptChange}
+              onKeyDown={handleKeyDown}
+              className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500 resize-none mb-4"
+            />
             <Button
-              variant={!isTransformMode ? "default" : "outline"}
-              onClick={() => setIsTransformMode(false)}
-              size="sm"
-              className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
+              onClick={() => submitPrompt()}
+              disabled={!actualPrompt.trim() || isPending}
+              className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
             >
-              Edit Mode
-            </Button>
-            <Button
-              variant={isTransformMode ? "default" : "outline"}
-              onClick={toggleTransformMode}
-              size="sm"
-              className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
-            >
-              Preview Mode
-            </Button>
-          </div>
-
-          <Card className="bg-zinc-900 border-zinc-800">
-            <div className="p-4">
-              {!isTransformMode ? (
+              {isPending ? (
                 <>
-                  {/* Edit Mode - User edits the actual text */}
-                  <div className="text-sm text-gray-400 mb-2">
-                    Edit your message (use format: .secret.question)
-                  </div>
-                  <Textarea
-                    ref={textareaRef}
-                    placeholder="Type your message here..."
-                    value={actualPrompt}
-                    onChange={handlePromptChange}
-                    onKeyDown={handleKeyDown}
-                    className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500 resize-none mb-4"
-                  />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Asking...
                 </>
               ) : (
-                <>
-                  {/* Preview Mode - Shows the transformed text */}
-                  <div className="text-sm text-gray-400 mb-2">
-                    Preview (how your message appears to the AI)
-                  </div>
-                  <div className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white font-mono text-sm p-3 rounded-md whitespace-pre-wrap mb-4 border">
-                    {displayPrompt || "Type something in edit mode to see the transformation..."}
-                  </div>
-                </>
+                "Ask Question"
               )}
-              
-              <Button
-                onClick={() => submitPrompt()}
-                disabled={!actualPrompt.trim() || isPending}
-                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
-              >
-                {isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Asking...
-                  </>
-                ) : (
-                  "Ask Question"
-                )}
-              </Button>
-            </div>
-          </Card>
-        </div>
+            </Button>
+          </div>
+        </Card>
       </div>
 
       <div className="text-center text-gray-600 text-sm">
