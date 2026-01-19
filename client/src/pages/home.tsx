@@ -58,6 +58,7 @@ export default function Home() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [typingMessageId, setTypingMessageId] = useState<number | null>(null);
+  const [pendingUserMessage, setPendingUserMessage] = useState<Message | null>(null);
 
   const { toast } = useToast();
 
@@ -66,7 +67,8 @@ export default function Home() {
   });
 
   const currentSession = chatSessions.find(s => s.id === currentSessionId);
-  const messages = currentSession?.messages || [];
+  const savedMessages = currentSession?.messages || [];
+  const messages = pendingUserMessage ? [...savedMessages, pendingUserMessage] : savedMessages;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -147,20 +149,16 @@ export default function Home() {
   };
 
   const { mutate: submitPrompt, isPending } = useMutation({
-    mutationFn: async () => {
-      const chatResponse = await sendMessage(actualPrompt);
+    mutationFn: async ({ userMsg, actualText }: { userMsg: Message; actualText: string }) => {
+      const chatResponse = await sendMessage(actualText);
       
       const assistantMessageId = Date.now() + 1;
-      const userMessage: Message = {
-        id: Date.now(),
-        role: "user",
-        content: displayPrompt
-      };
       const assistantMessage: Message = {
         id: assistantMessageId,
         role: "assistant",
         content: chatResponse.response
       };
+      const userMessage = userMsg;
 
       if (currentSessionId === null) {
         const title = displayPrompt.slice(0, 30) + (displayPrompt.length > 30 ? "..." : "");
@@ -188,11 +186,13 @@ export default function Home() {
       if (result.isNew && result.session) {
         setCurrentSessionId(result.session.id);
       }
+      setPendingUserMessage(null);
       setTypingMessageId(result.assistantMessageId);
       setActualPrompt("");
       setDisplayPrompt("");
     },
     onError: (error) => {
+      setPendingUserMessage(null);
       toast({
         variant: "destructive",
         title: "Error",
@@ -200,6 +200,18 @@ export default function Home() {
       });
     }
   });
+
+  const handleSubmit = () => {
+    if (!actualPrompt.trim() || isPending) return;
+    
+    const userMessage: Message = {
+      id: Date.now(),
+      role: "user",
+      content: displayPrompt
+    };
+    setPendingUserMessage(userMessage);
+    submitPrompt({ userMsg: userMessage, actualText: actualPrompt });
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const textarea = e.currentTarget;
@@ -209,7 +221,7 @@ export default function Home() {
 
     if (e.key === 'Enter' && !e.shiftKey && actualPrompt.trim() && !isPending) {
       e.preventDefault();
-      submitPrompt();
+      handleSubmit();
       return;
     }
 
@@ -443,7 +455,7 @@ export default function Home() {
                 style={{ minHeight: "40px" }}
               />
               <Button
-                onClick={() => submitPrompt()}
+                onClick={handleSubmit}
                 disabled={!actualPrompt.trim() || isPending}
                 size="icon"
                 className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
