@@ -23,6 +23,30 @@ interface ChatSession {
   updatedAt: string;
 }
 
+function TypeWriter({ text, onComplete }: { text: string; onComplete?: () => void }) {
+  const [displayedText, setDisplayedText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (currentIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedText(prev => prev + text[currentIndex]);
+        setCurrentIndex(prev => prev + 1);
+      }, 15);
+      return () => clearTimeout(timeout);
+    } else if (onComplete) {
+      onComplete();
+    }
+  }, [currentIndex, text, onComplete]);
+
+  useEffect(() => {
+    setDisplayedText("");
+    setCurrentIndex(0);
+  }, [text]);
+
+  return <>{displayedText}</>;
+}
+
 export default function Home() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -33,6 +57,7 @@ export default function Home() {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [typingMessageId, setTypingMessageId] = useState<number | null>(null);
 
   const { toast } = useToast();
 
@@ -125,13 +150,14 @@ export default function Home() {
     mutationFn: async () => {
       const chatResponse = await sendMessage(actualPrompt);
       
+      const assistantMessageId = Date.now() + 1;
       const userMessage: Message = {
         id: Date.now(),
         role: "user",
         content: displayPrompt
       };
       const assistantMessage: Message = {
-        id: Date.now() + 1,
+        id: assistantMessageId,
         role: "assistant",
         content: chatResponse.response
       };
@@ -143,7 +169,7 @@ export default function Home() {
           messages: [userMessage, assistantMessage] 
         });
         const session = await res.json();
-        return { session, isNew: true };
+        return { session, isNew: true, assistantMessageId };
       } else {
         const currentMessages = currentSession?.messages || [];
         const updatedMessages = [...currentMessages, userMessage, assistantMessage];
@@ -154,7 +180,7 @@ export default function Home() {
           messages: updatedMessages,
           title
         });
-        return { isNew: false };
+        return { isNew: false, assistantMessageId };
       }
     },
     onSuccess: (result) => {
@@ -162,6 +188,7 @@ export default function Home() {
       if (result.isNew && result.session) {
         setCurrentSessionId(result.session.id);
       }
+      setTypingMessageId(result.assistantMessageId);
       setActualPrompt("");
       setDisplayPrompt("");
     },
@@ -368,7 +395,16 @@ export default function Home() {
                     ? "bg-zinc-800 text-white"
                     : "bg-zinc-900 border border-zinc-800 text-zinc-100"
                 }`}>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {message.role === "assistant" && message.id === typingMessageId ? (
+                      <TypeWriter 
+                        text={message.content} 
+                        onComplete={() => setTypingMessageId(null)} 
+                      />
+                    ) : (
+                      message.content
+                    )}
+                  </p>
                 </div>
               </div>
             ))}
