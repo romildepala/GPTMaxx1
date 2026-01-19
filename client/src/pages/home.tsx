@@ -174,6 +174,11 @@ export default function Home() {
   });
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    const selStart = textarea.selectionStart;
+    const selEnd = textarea.selectionEnd;
+    const hasSelection = selStart !== selEnd;
+
     if (e.key === 'Enter' && !e.shiftKey && actualPrompt.trim() && !isPending) {
       e.preventDefault();
       submitPrompt();
@@ -182,23 +187,47 @@ export default function Home() {
 
     if (e.key === 'Backspace') {
       e.preventDefault();
-      if (actualPrompt.length > 0) {
-        setActualPrompt(actualPrompt.slice(0, -1));
+      if (hasSelection) {
+        const newText = actualPrompt.slice(0, selStart) + actualPrompt.slice(selEnd);
+        setActualPrompt(newText);
+        setTimeout(() => {
+          textarea.setSelectionRange(selStart, selStart);
+        }, 0);
+      } else if (selStart > 0) {
+        const newText = actualPrompt.slice(0, selStart - 1) + actualPrompt.slice(selStart);
+        setActualPrompt(newText);
+        setTimeout(() => {
+          textarea.setSelectionRange(selStart - 1, selStart - 1);
+        }, 0);
       }
       return;
     }
 
     if (e.key === 'Delete') {
       e.preventDefault();
-      if (actualPrompt.length > 0) {
-        setActualPrompt(actualPrompt.slice(0, -1));
+      if (hasSelection) {
+        const newText = actualPrompt.slice(0, selStart) + actualPrompt.slice(selEnd);
+        setActualPrompt(newText);
+        setTimeout(() => {
+          textarea.setSelectionRange(selStart, selStart);
+        }, 0);
+      } else if (selStart < actualPrompt.length) {
+        const newText = actualPrompt.slice(0, selStart) + actualPrompt.slice(selStart + 1);
+        setActualPrompt(newText);
+        setTimeout(() => {
+          textarea.setSelectionRange(selStart, selStart);
+        }, 0);
       }
       return;
     }
 
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
-      setActualPrompt(actualPrompt + e.key);
+      const newText = actualPrompt.slice(0, selStart) + e.key + actualPrompt.slice(selEnd);
+      setActualPrompt(newText);
+      setTimeout(() => {
+        textarea.setSelectionRange(selStart + 1, selStart + 1);
+      }, 0);
       return;
     }
   };
