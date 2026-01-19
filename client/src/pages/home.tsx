@@ -55,7 +55,7 @@ export default function Home() {
     if (text === '.') return 'M';
 
     let result = 'M';
-    const transformUpTo = "Master Houndini, read my mind...";
+    const transformUpTo = "Master Houdini, read my mind...";
 
     let periodPositions = [];
     for (let i = 1; i < text.length; i++) {
@@ -378,7 +378,7 @@ export default function Home() {
             <div className="relative flex items-end gap-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-2">
               <textarea
                 ref={textareaRef}
-                placeholder="Master Houndini, read my mind..."
+                placeholder="Master Houdini, read my mind..."
                 value={displayPrompt}
                 onChange={handlePromptChange}
                 onKeyDown={handleKeyDown}
