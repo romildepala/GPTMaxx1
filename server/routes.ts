@@ -29,10 +29,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/sessions", async (req: Request, res: Response) => {
     try {
-      const { title } = req.body;
+      const { title, messages } = req.body;
       const session = await storage.createChatSession({
         title: title || "New Chat",
-        messages: []
+        messages: messages || []
       });
       res.json(session);
     } catch (error) {

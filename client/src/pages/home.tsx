@@ -149,7 +149,7 @@ export default function Home() {
   };
 
   const { mutate: submitPrompt, isPending } = useMutation({
-    mutationFn: async ({ userMsg, actualText }: { userMsg: Message; actualText: string }) => {
+    mutationFn: async ({ userMsg, actualText, displayText }: { userMsg: Message; actualText: string; displayText: string }) => {
       const chatResponse = await sendMessage(actualText);
       
       const assistantMessageId = Date.now() + 1;
@@ -161,7 +161,7 @@ export default function Home() {
       const userMessage = userMsg;
 
       if (currentSessionId === null) {
-        const title = displayPrompt.slice(0, 30) + (displayPrompt.length > 30 ? "..." : "");
+        const title = displayText.slice(0, 30) + (displayText.length > 30 ? "..." : "");
         const res = await apiRequest('POST', '/api/sessions', { 
           title, 
           messages: [userMessage, assistantMessage] 
@@ -172,7 +172,7 @@ export default function Home() {
         const currentMessages = currentSession?.messages || [];
         const updatedMessages = [...currentMessages, userMessage, assistantMessage];
         const title = currentMessages.length === 0 
-          ? displayPrompt.slice(0, 30) + (displayPrompt.length > 30 ? "..." : "")
+          ? displayText.slice(0, 30) + (displayText.length > 30 ? "..." : "")
           : undefined;
         await apiRequest('PUT', `/api/sessions/${currentSessionId}`, { 
           messages: updatedMessages,
@@ -210,7 +210,7 @@ export default function Home() {
       content: displayPrompt
     };
     setPendingUserMessage(userMessage);
-    submitPrompt({ userMsg: userMessage, actualText: actualPrompt });
+    submitPrompt({ userMsg: userMessage, actualText: actualPrompt, displayText: displayPrompt });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
