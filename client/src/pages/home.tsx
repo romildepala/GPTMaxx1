@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +26,7 @@ interface ChatSession {
 export default function Home() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const cursorPositionRef = useRef<number | null>(null);
 
   const [actualPrompt, setActualPrompt] = useState("");
   const [displayPrompt, setDisplayPrompt] = useState("");
@@ -189,16 +190,12 @@ export default function Home() {
       e.preventDefault();
       if (hasSelection) {
         const newText = actualPrompt.slice(0, selStart) + actualPrompt.slice(selEnd);
+        cursorPositionRef.current = selStart;
         setActualPrompt(newText);
-        setTimeout(() => {
-          textarea.setSelectionRange(selStart, selStart);
-        }, 0);
       } else if (selStart > 0) {
         const newText = actualPrompt.slice(0, selStart - 1) + actualPrompt.slice(selStart);
+        cursorPositionRef.current = selStart - 1;
         setActualPrompt(newText);
-        setTimeout(() => {
-          textarea.setSelectionRange(selStart - 1, selStart - 1);
-        }, 0);
       }
       return;
     }
@@ -207,16 +204,12 @@ export default function Home() {
       e.preventDefault();
       if (hasSelection) {
         const newText = actualPrompt.slice(0, selStart) + actualPrompt.slice(selEnd);
+        cursorPositionRef.current = selStart;
         setActualPrompt(newText);
-        setTimeout(() => {
-          textarea.setSelectionRange(selStart, selStart);
-        }, 0);
       } else if (selStart < actualPrompt.length) {
         const newText = actualPrompt.slice(0, selStart) + actualPrompt.slice(selStart + 1);
+        cursorPositionRef.current = selStart;
         setActualPrompt(newText);
-        setTimeout(() => {
-          textarea.setSelectionRange(selStart, selStart);
-        }, 0);
       }
       return;
     }
@@ -224,10 +217,8 @@ export default function Home() {
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       const newText = actualPrompt.slice(0, selStart) + e.key + actualPrompt.slice(selEnd);
+      cursorPositionRef.current = selStart + 1;
       setActualPrompt(newText);
-      setTimeout(() => {
-        textarea.setSelectionRange(selStart + 1, selStart + 1);
-      }, 0);
       return;
     }
   };
@@ -247,11 +238,11 @@ export default function Home() {
     setIsUnlocked(periodCount >= 2);
   }, [actualPrompt]);
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      const len = displayPrompt.length;
-      textareaRef.current.selectionStart = len;
-      textareaRef.current.selectionEnd = len;
+  useLayoutEffect(() => {
+    if (textareaRef.current && cursorPositionRef.current !== null) {
+      const pos = cursorPositionRef.current;
+      textareaRef.current.setSelectionRange(pos, pos);
+      cursorPositionRef.current = null;
     }
   }, [displayPrompt]);
 
