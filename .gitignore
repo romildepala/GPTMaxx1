@@ -8,3 +8,5 @@ vite.config.ts.*
 .env.*
 *.env
 secrets.*
+.replit
+replit.md
