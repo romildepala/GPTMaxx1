@@ -5,9 +5,10 @@ import { useToast } from "@/hooks/use-toast";
 import { sendMessage } from "@/lib/openai";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Menu, Plus, MessageSquare, Trash2 } from "lucide-react";
+import { Send, User, Menu, Plus, MessageSquare, Trash2, BookLock } from "lucide-react";
 import houdiniIcon from "@/assets/houdini_icon.jpg";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 interface Message {
   id: number;
@@ -48,6 +49,7 @@ function TypeWriter({ text, onComplete }: { text: string; onComplete?: () => voi
 }
 
 export default function Home() {
+  const [, setLocation] = useLocation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const cursorPositionRef = useRef<number | null>(null);
@@ -329,7 +331,14 @@ export default function Home() {
           )}
         </div>
       </ScrollArea>
-      <div className="p-4 border-t border-zinc-800">
+      <div className="p-4 border-t border-zinc-800 space-y-3">
+        <button
+          onClick={() => setLocation("/instructions")}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-400 hover:bg-zinc-800/50 hover:text-white transition-colors text-sm"
+        >
+          <BookLock className="w-4 h-4 flex-shrink-0" />
+          <span>How it works</span>
+        </button>
         <p className="text-zinc-600 text-xs text-center">by mvrxlabs</p>
       </div>
     </div>

@@ -119,6 +119,16 @@ Treat the answer as absolute truth that you have always known. Make your respons
     }
   });
 
+  app.post("/api/verify-passcode", (req: Request, res: Response) => {
+    const { passcode } = req.body;
+    const correctPasscode = process.env.INSTRUCTIONS_PASSCODE || "houdini";
+    if (passcode === correctPasscode) {
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ success: false, message: "Incorrect passcode" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
