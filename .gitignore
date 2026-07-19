@@ -8,7 +8,5 @@ vite.config.ts.*
 .env.*
 *.env
 secrets.*
-.replit
-replit.md
 attached_assets
 generated-icon.png
