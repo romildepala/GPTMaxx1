@@ -10,3 +10,5 @@ vite.config.ts.*
 secrets.*
 .replit
 replit.md
+attached_assets
+generated-icon.png
