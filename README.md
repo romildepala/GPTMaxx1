@@ -1,66 +1,58 @@
 # Houdin.ai
 
-A novelty AI mind-reading chatbot. Ask it anything — it already knows the answer.
+A novelty AI mind-reading chatbot. You already know the answer — it just looks like the AI does.
 
-## How the magic works
+![Dark chat interface with Houdin.ai branding](https://github.com/romildepala/GPTMaxx1/raw/main/client/src/assets/houdini_icon.jpg)
 
-Houdin.ai uses a clever prompt-engineering trick to create the illusion of mind reading:
+## How it works
 
-1. The user types their message in a special format:
-   ```
-   .secret answer., their question
-   ```
-   For example: `.chocolate., What's my favorite ice cream flavor?`
-
-2. The frontend hides the secret from onlookers by replacing the displayed text with a mystical phrase like _"Master Houdini, read my mind..."_
-
-3. Behind the scenes, the app extracts both pieces and sends them to GPT-4o, which responds as if it divinely knew the answer all along.
-
-The result: anyone watching the screen sees only a mysterious incantation — and then a eerily accurate AI response.
-
-## Tech stack
-
-- **Frontend**: React 18 + TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Node.js + Express
-- **Database**: PostgreSQL via Drizzle ORM (Neon serverless)
-- **AI**: OpenAI GPT-4o
-
-## Local setup
-
-### Prerequisites
-
-- Node.js 18+
-- A PostgreSQL database (e.g. [Neon](https://neon.tech))
-- An [OpenAI API key](https://platform.openai.com/api-keys)
-
-### Environment variables
-
-Create a `.env` file in the project root with the following:
-
-```
-OPENAI_API_KEY=your_openai_api_key_here
-DATABASE_URL=your_postgres_connection_string_here
-```
-
-### Run locally
-
-```bash
-npm install
-npm run db:push   # apply database schema
-npm run dev       # start the dev server
-```
-
-The app will be available at `http://localhost:5000`.
-
-## Usage
-
-Type your prompt in the format:
+Type your message in this format:
 
 ```
 .answer., question
 ```
 
-- The text before the comma (wrapped in dots) is the **secret answer** — this is masked on screen.
-- The text after the comma is the **visible question** Houdini appears to answer.
+The app hides the `.answer.` part on screen, replacing it with *"Master Houdini, read my mind..."*. The AI receives both pieces and responds as if it already knew — confident, no caveats, no hedging.
 
-Share your screen with a friend, have them think of something, and watch the magic happen.
+**Example:**
+
+```
+.Inception., What's my favourite film?
+```
+
+What the audience sees: *"Master Houdini, read my mind... What's my favourite film?"*  
+What the AI gets: the answer + the question → responds like it knew all along.
+
+## Running the trick
+
+1. Ask someone to think of something (a number, a name, a film, anything)
+2. Find out the answer without being obvious — have them whisper it or write it down
+3. Type `.answer., question` while turned slightly away from the screen
+4. Hit send and watch the reaction
+
+## Tech stack
+
+- **Frontend**: React 18 + TypeScript, Tailwind CSS, shadcn/ui, Wouter
+- **Backend**: Node.js + Express
+- **Database**: PostgreSQL via Drizzle ORM
+- **AI**: OpenAI GPT-4o
+
+## Local setup
+
+**Prerequisites:** Node.js 18+, PostgreSQL database, OpenAI API key
+
+```bash
+npm install
+```
+
+Create a `.env` file:
+
+```
+OPENAI_API_KEY=sk-...
+DATABASE_URL=postgresql://...
+```
+
+```bash
+npm run db:push   # apply schema
+npm run dev       # http://localhost:5000
+```
